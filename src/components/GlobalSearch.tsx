@@ -25,7 +25,7 @@ export function GlobalSearch({ onNavigate }: Props) {
   // Cmd+K / Ctrl+K to open
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+      if ((e.metaKey || e.ctrlKey) && e.key === "f") {
         e.preventDefault();
         setOpen(true);
       }
@@ -55,7 +55,7 @@ export function GlobalSearch({ onNavigate }: Props) {
     return () => clearTimeout(t);
   }, [query]);
 
-  const select = (m: Member) => {
+  const select = (_m: Member) => {
     onNavigate("members");
     setOpen(false);
     setQuery("");
