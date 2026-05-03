@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { openPath } from '@tauri-apps/plugin-opener';
+import { openUrl } from '@tauri-apps/plugin-opener';
 
 interface Member {
   id: number;
@@ -60,7 +60,7 @@ export default function ContactsPage() {
   const openWhatsApp = async (mobile: string) => {
     const url = whatsappUrl(mobile);
     try {
-      await openPath(url);
+      await openUrl(url);
     } catch {
       window.open(url, "_blank");
     }

@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
+import { useUpdater } from "./Updater";
 import { invoke } from "@tauri-apps/api/core";
 import { open, save } from "@tauri-apps/plugin-dialog";
 
@@ -9,7 +10,7 @@ interface DonationType { id: number; name: string; is_active: number; }
 interface UserRow { id: number; name: string; mobile: string | null; role: string; status: string; }
 
 // Tab bar 
-const TABS = ["Organisation", "Membership Types", "Donation Types", "Users", "Database"] as const;
+const TABS = ["Organisation", "Membership Types", "Donation Types", "Users", "Database", "Updates"] as const;
 type Tab = typeof TABS[number];
 
 function TabBar({ active, onChange }: { active: Tab; onChange: (t: Tab) => void }) {
@@ -543,6 +544,65 @@ function UsersTab({ onToast, currentRole }: { onToast: (m: string, ok: boolean) 
   );
 }
 
+// Updates Tab
+function UpdatesTab() {
+  const { state, checkForUpdates, installUpdate, restart } = useUpdater();
+
+  return (
+    <div className="card" style={{ maxWidth: 520 }}>
+      <div className="card-header"><div className="card-title">App Updates</div></div>
+      <div className="card-body" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        <div style={{ fontSize: 14, color: "var(--color-text-secondary)" }}>
+          Nityaseva checks for updates automatically on launch.
+          You can also check manually below.
+        </div>
+
+        {state.status === "idle" && (
+          <button className="btn btn-secondary" onClick={() => checkForUpdates(false)}>
+            Check for Updates
+          </button>
+        )}
+        {state.status === "checking" && (
+          <button className="btn btn-secondary" disabled>Checking…</button>
+        )}
+        {state.status === "available" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <div className="badge badge-success" style={{ alignSelf: "flex-start" }}>
+              Update Available — v{state.update.version}
+            </div>
+            {state.update.body && (
+              <div style={{
+                background: "var(--color-surface-3)", borderRadius: "var(--radius-md)",
+                padding: "10px 12px", fontSize: 13, whiteSpace: "pre-wrap",
+              }}>{state.update.body}</div>
+            )}
+            <button className="btn btn-primary" onClick={installUpdate}>
+              Download & Install
+            </button>
+          </div>
+        )}
+        {state.status === "downloading" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <div style={{ fontSize: 13 }}>Downloading… {state.progress}%</div>
+            <div style={{ height: 8, background: "var(--color-surface-4)", borderRadius: 99, overflow: "hidden" }}>
+              <div style={{ height: "100%", width: `${state.progress}%`, background: "var(--color-saffron-500)", borderRadius: 99, transition: "width 300ms" }} />
+            </div>
+          </div>
+        )}
+        {state.status === "ready" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <div className="badge badge-success" style={{ alignSelf: "flex-start" }}>Ready to install</div>
+            <button className="btn btn-primary" onClick={restart}>Restart Now</button>
+          </div>
+        )}
+        {state.status === "error" && (
+          <div style={{ color: "var(--color-danger)", fontSize: 13 }}>{state.message}</div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // Settings Page
 export default function SettingsPage({ currentRole }: { currentRole: string }) {
   const [tab, setTab] = useState<Tab>("Organisation");
@@ -566,7 +626,7 @@ export default function SettingsPage({ currentRole }: { currentRole: string }) {
       {tab === "Donation Types" && <DonationTypesTab onToast={showToast} />}
       {tab === "Database" && <DatabaseTab onToast={showToast} />}
       {tab === "Users" && <UsersTab onToast={showToast} currentRole={currentRole} />}
-
+      {tab === "Updates" && <UpdatesTab />}
       {toast && <Toast msg={toast.msg} ok={toast.ok} />}
     </div>
   );

@@ -65,7 +65,7 @@ html, body, #root {
   margin: 0;
   padding: 0;
   font-family: var(--font-sans);
-  font-size: 13px;
+  font-size: 16px;
   line-height: 1.5;
   color: var(--color-text-primary);
   background: var(--color-surface-0);
@@ -140,14 +140,14 @@ html, body, #root {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 700;
   color: white;
   flex-shrink: 0;
 }
 
 .sidebar-logo-text {
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 600;
   color: var(--color-text-primary);
   letter-spacing: -0.2px;
@@ -155,7 +155,7 @@ html, body, #root {
 
 .sidebar-section {
   padding: 8px 8px 2px;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.6px;
   text-transform: uppercase;
@@ -179,7 +179,7 @@ html, body, #root {
   border-radius: var(--radius-md);
   cursor: pointer;
   color: var(--color-text-secondary);
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 500;
   transition: background 120ms, color 120ms;
   text-decoration: none;
@@ -232,14 +232,14 @@ html, body, #root {
 }
 
 .page-title {
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 600;
   color: var(--color-text-primary);
   letter-spacing: -0.3px;
 }
 
 .page-subtitle {
-  font-size: 12px;
+  font-size: 14px;
   color: var(--color-text-muted);
   margin-top: 2px;
 }
@@ -261,7 +261,7 @@ html, body, #root {
 }
 
 .card-title {
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 600;
   color: var(--color-text-primary);
 }
@@ -277,7 +277,7 @@ html, body, #root {
 }
 
 .stat-label {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.4px;
   text-transform: uppercase;
@@ -293,7 +293,7 @@ html, body, #root {
 }
 
 .stat-sub {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--color-text-muted);
   margin-top: 4px;
 }
@@ -305,7 +305,7 @@ html, body, #root {
   gap: 6px;
   padding: 6px 14px;
   border-radius: var(--radius-md);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
   cursor: pointer;
   border: 1px solid transparent;
@@ -344,7 +344,7 @@ html, body, #root {
 .btn-ghost:hover { background: var(--color-surface-4); color: var(--color-text-primary); }
 
 .btn-sm { padding: 4px 10px; font-size: 12px; }
-.btn-lg { padding: 8px 20px; font-size: 14px; }
+.btn-lg { padding: 8px 20px; font-size: 18px; }
 .btn-icon { padding: 6px; }
 
 /* ── Form elements ── */
@@ -363,7 +363,7 @@ html, body, #root {
   border-radius: var(--radius-md);
   background: var(--color-surface-2);
   color: var(--color-text-primary);
-  font-size: 13px;
+  font-size: 14px;
   font-family: var(--font-sans);
   outline: none;
   transition: border-color 120ms, box-shadow 120ms;
@@ -376,7 +376,7 @@ html, body, #root {
 
 .input::placeholder { color: var(--color-text-muted); }
 
-.input-lg { height: 38px; font-size: 14px; padding: 0 12px; }
+.input-lg { height: 38px; font-size: 18px; padding: 0 12px; }
 
 textarea.input {
   height: auto;
@@ -397,7 +397,7 @@ select.input { cursor: pointer; }
 table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13px;
+  font-size: 14px;
   background: var(--color-surface-2);
 }
 
@@ -409,7 +409,7 @@ thead tr {
 th {
   text-align: left;
   padding: 8px 12px;
-  font-size: 11px;
+  font-size: 14px;
   font-weight: 600;
   letter-spacing: 0.4px;
   text-transform: uppercase;
@@ -435,7 +435,7 @@ tbody tr:hover { background: var(--color-surface-3); }
   gap: 4px;
   padding: 2px 8px;
   border-radius: 99px;
-  font-size: 11px;
+  font-size: 14px;
   font-weight: 600;
 }
 
@@ -503,7 +503,7 @@ tbody tr:hover { background: var(--color-surface-3); }
 }
 
 .modal-title {
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 600;
 }
 
@@ -526,7 +526,7 @@ tbody tr:hover { background: var(--color-surface-3); }
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   padding: 10px 14px;
-  font-size: 13px;
+  font-size: 14px;
   box-shadow: 0 4px 16px rgba(0,0,0,0.12);
   display: flex;
   align-items: center;

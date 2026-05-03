@@ -3,13 +3,16 @@ import ReactDOM from "react-dom/client";
 import App from "./App";
 import { invoke } from "@tauri-apps/api/core";
 import { AuthProvider } from "./Auth";
+import { LangProvider } from "./contexts/LangContext";
 
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
-     <AuthProvider>
-      <App />
-    </AuthProvider>
+    <LangProvider>
+        <AuthProvider>
+        <App />
+        </AuthProvider>
+    </LangProvider>
   </React.StrictMode>,
 );
 

@@ -12,7 +12,8 @@ import ReportsPage from "./pages/Reports";
 import SmsPage from "./pages/Sms";
 import ContactsPage from "./pages/Contacts";
 import MemberExportPage from "./pages/MemberExport";
-import { UpdaterDialog } from "./pages/Updater";
+import { GlobalSearch } from "./components/GlobalSearch";
+import { Topbar } from "./components/Topbar";
 
 
 const icons = {
@@ -114,30 +115,13 @@ export default function App() {
       </aside>
 
       {/* Topbar */}
-      <header className="topbar">
-        <div className="search-wrap">
-          <span className="search-icon"><Icon d={icons.search} size={14} /></span>
-          <input className="input search-input" placeholder="Search members, donations…" />
-        </div>
-        <div style={{marginLeft: "auto", display: "flex", alignItems: "center", gap: 8}}>
-          <button className="btn btn-ghost btn-icon" title="Notifications">
-            <Icon d={icons.bell} size={16} />
-          </button>
-          <button className="btn btn-ghost btn-icon" title="Database">
-            <Icon d={icons.db} size={16} />
-          </button>
-          <div className="divider" style={{width: 1, height: 20, margin: "0 4px"}} />
-          <span style={{fontSize: 12, color: "var(--color-text-muted)"}}>EN</span>
-          <span style={{fontSize: 12, color: "var(--color-text-muted)"}}>|</span>
-          <span style={{fontSize: 12, color: "var(--color-saffron-600)", fontWeight: 600, cursor: "pointer"}}>বাং</span>
-        </div>
-      </header>
+      <Topbar setActive={setActive} />
 
       {/* Content */}
       <main className="content">
         {pages[active] ?? null}
-      </main>      
-      <UpdaterDialog />
+      </main>
+      <GlobalSearch onNavigate={(page) => setActive(page)} />
     </div>
   );
 }
