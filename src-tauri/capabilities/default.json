@@ -18,6 +18,8 @@
       "allow": [
         { "path": "$APPDATA/**" }
       ]
-    }
+    },
+    "updater:default",
+    "process:allow-restart"
   ]
 }

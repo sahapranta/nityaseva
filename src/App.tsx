@@ -12,6 +12,7 @@ import ReportsPage from "./pages/Reports";
 import SmsPage from "./pages/Sms";
 import ContactsPage from "./pages/Contacts";
 import MemberExportPage from "./pages/MemberExport";
+import { UpdaterDialog } from "./pages/Updater";
 
 
 const icons = {
@@ -135,7 +136,8 @@ export default function App() {
       {/* Content */}
       <main className="content">
         {pages[active] ?? null}
-      </main>
+      </main>      
+      <UpdaterDialog />
     </div>
   );
 }
