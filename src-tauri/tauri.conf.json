@@ -1,0 +1,50 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "nityaseva",
+  "version": "0.1.0",
+  "identifier": "com.prantasaha.nityaseva",
+  "build": {
+    "beforeDevCommand": "bun run dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "bun run build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "splashscreen",
+        "url": "splashscreen.html",
+        "width": 560,
+        "height": 310,
+        "decorations": false,
+        "resizable": false,
+        "transparent": true,
+        "center": true,
+        "shadow": false
+      },
+      {
+        "label": "main",
+        "title": "nityaseva",
+        "visible": false,
+        "width": 800,
+        "height": 600
+      }
+    ],
+    "macOSPrivateApi": true,
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "resources": ["assets/*"],
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ]
+  }
+}

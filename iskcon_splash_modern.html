@@ -1,0 +1,176 @@
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+Bengali:wght@400;700&family=Cinzel:wght@500;700&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;}
+.outer{background:#12100e;display:flex;align-items:center;justify-content:center;padding:32px 20px;min-height:360px;}
+.card{
+  background:#1c1610;
+  border:1px solid #5a3e1b;
+  border-radius:16px;
+  width:560px;
+  padding:0;
+  overflow:hidden;
+  position:relative;
+}
+.top-accent{height:3px;background:linear-gradient(90deg,#2a1a06,#c9860a,#f5c842,#c9860a,#2a1a06);}
+.body{padding:32px 36px 24px;}
+.title-row{margin-bottom:20px;}
+.title-bn{
+  font-family:'Noto Serif Bengali',serif;
+  font-size:26px;
+  font-weight:700;
+  color:#f0e0b0;
+  letter-spacing:0.5px;
+  line-height:1.35;
+}
+.middle-row{display:flex;align-items:center;gap:24px;margin-bottom:20px;}
+.img-frame{
+  width:100px;height:100px;
+  border:2px solid #c9860a;
+  border-radius:10px;
+  overflow:hidden;
+  flex-shrink:0;
+  background:#2a1a06;
+  display:flex;align-items:center;justify-content:center;
+}
+.img-frame svg{width:72px;height:72px;}
+.right-block{display:flex;flex-direction:column;gap:10px;}
+.subtitle-bn{
+  font-family:'Noto Serif Bengali',serif;
+  font-size:28px;
+  font-weight:700;
+  color:#f5c842;
+  letter-spacing:1px;
+}
+.license-pill{
+  background:#2a1a06;
+  border:1px solid #5a3e1b;
+  border-radius:6px;
+  padding:6px 14px;
+  color:#b8965a;
+  font-family:'Noto Serif Bengali',serif;
+  font-size:13px;
+  display:inline-block;
+}
+.version-row{
+  display:flex;justify-content:flex-end;
+  margin-bottom:20px;
+}
+.version-label{
+  font-family:'Noto Serif Bengali',serif;
+  font-size:17px;
+  font-weight:700;
+  color:#c9860a;
+  background:#2a1a06;
+  border:1px solid #5a3e1b;
+  border-radius:20px;
+  padding:4px 18px;
+  letter-spacing:1px;
+}
+.divider{border:none;border-top:1px solid #3a2a0e;margin:0 0 16px;}
+.footer-row{display:flex;justify-content:space-between;align-items:center;}
+.dev{
+  font-size:12px;
+  color:#7a6040;
+  font-family:'Cinzel',serif;
+  font-style:italic;
+}
+.loader-wrap{display:flex;align-items:center;gap:10px;}
+.loader-track{
+  width:160px;height:5px;
+  background:#2a1a06;
+  border-radius:3px;
+  overflow:hidden;
+  border:1px solid #3a2a0e;
+}
+.loader-fill{
+  height:100%;width:0%;
+  background:linear-gradient(90deg,#c9860a,#f5c842);
+  border-radius:3px;
+  animation:loadbar 3s cubic-bezier(0.4,0,0.2,1) forwards;
+}
+@keyframes loadbar{
+  0%{width:0%;}
+  55%{width:70%;}
+  80%{width:88%;}
+  100%{width:100%;}
+}
+.loader-pct{font-size:12px;color:#7a6040;font-family:'Cinzel',serif;min-width:36px;text-align:right;}
+.bottom-accent{height:2px;background:linear-gradient(90deg,#2a1a06,#5a3e1b,#2a1a06);}
+.dot{
+  position:absolute;width:120px;height:120px;
+  border-radius:50%;
+  background:radial-gradient(circle,#c9860a22 0%,transparent 70%);
+  top:-30px;right:-30px;
+  pointer-events:none;
+}
+.dot2{
+  position:absolute;width:80px;height:80px;
+  border-radius:50%;
+  background:radial-gradient(circle,#f5c84215 0%,transparent 70%);
+  bottom:10px;left:10px;
+  pointer-events:none;
+}
+</style>
+
+<div class="outer">
+<div class="card">
+  <div class="dot"></div><div class="dot2"></div>
+  <div class="top-accent"></div>
+  <div class="body">
+    <div class="title-row">
+      <div class="title-bn">নিত্যসেবা বিভাগ ব্যাবস্থাপনা</div>
+    </div>
+    <div class="middle-row">
+      <div class="img-frame">
+        <svg viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="4" y="4" width="64" height="64" rx="8" fill="#2a1a06" stroke="#5a3e1b" stroke-width="1"/>
+          <ellipse cx="36" cy="28" rx="10" ry="12" fill="#f5d090"/>
+          <circle cx="36" cy="24" r="8" fill="#f5d090"/>
+          <ellipse cx="36" cy="13" rx="6" ry="5" fill="#f5c842" opacity="0.9"/>
+          <rect x="33" y="9" width="6" height="3" rx="1.5" fill="#c9860a"/>
+          <circle cx="32" cy="23" r="1.4" fill="#3a1800"/>
+          <circle cx="40" cy="23" r="1.4" fill="#3a1800"/>
+          <path d="M33 27 Q36 30 39 27" stroke="#b05010" stroke-width="1.3" fill="none"/>
+          <ellipse cx="36" cy="46" rx="16" ry="14" fill="#f5d090"/>
+          <ellipse cx="22" cy="50" rx="5" ry="10" fill="#f7d080"/>
+          <ellipse cx="50" cy="50" rx="5" ry="10" fill="#f7d080"/>
+          <path d="M26 36 Q20 32 22 26" stroke="#c9860a" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+          <path d="M46 36 Q52 32 50 26" stroke="#c9860a" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+          <ellipse cx="36" cy="60" rx="8" ry="3" fill="#c9860a" opacity="0.3"/>
+        </svg>
+      </div>
+      <div class="right-block">
+        <div class="subtitle-bn">ইসকন-বাংলাদেশ</div>
+        <div class="license-pill">এই প্রোগ্রাম শুধুমাত্র ইসকনে লাইসেঙ্কৃত</div>
+      </div>
+    </div>
+    <div class="version-row">
+      <div class="version-label">সংস্করন : ১.০.০</div>
+    </div>
+    <hr class="divider">
+    <div class="footer-row">
+      <div class="dev">Developed By : hksamacar</div>
+      <div class="loader-wrap">
+        <div class="loader-track"><div class="loader-fill" id="lf"></div></div>
+        <div class="loader-pct" id="lpct">0%</div>
+      </div>
+    </div>
+  </div>
+  <div class="bottom-accent"></div>
+</div>
+</div>
+
+<script>
+const lf=document.getElementById('lf');
+const lpct=document.getElementById('lpct');
+let s=null,dur=3000;
+function tick(ts){
+  if(!s)s=ts;
+  const p=Math.min((ts-s)/dur,1);
+  const e=p<0.55?p/0.55*0.70:p<0.80?0.70+(p-0.55)/0.25*0.18:0.88+(p-0.80)/0.20*0.12;
+  lpct.textContent=Math.round(e*100)+'%';
+  if(p<1)requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+</script>
