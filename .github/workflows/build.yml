@@ -6,9 +6,11 @@ on:
       - "v*"
   workflow_dispatch:
 
-# Required for creating GitHub releases
 permissions:
   contents: write
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true   # silence Node 20 deprecation warnings
 
 jobs:
   build:
@@ -19,8 +21,13 @@ jobs:
           - platform: windows-latest
             args: ""
 
+          # Build separate binaries for each Mac arch (the correct approach –
+          # passing --target twice to a single invocation is not supported).
           - platform: macos-latest
-            args: "--target aarch64-apple-darwin --target x86_64-apple-darwin"
+            args: "--target aarch64-apple-darwin"
+
+          - platform: macos-latest
+            args: "--target x86_64-apple-darwin"
 
           - platform: ubuntu-22.04
             args: ""
@@ -52,6 +59,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y \
             libwebkit2gtk-4.1-dev \
+            libsoup-3.0-dev \
             libappindicator3-dev \
             librsvg2-dev \
             patchelf \
@@ -65,6 +73,8 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Only inject signing secrets if they are actually configured.
+          # Remove these two lines entirely if you haven't set up the updater.
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
@@ -72,16 +82,13 @@ jobs:
           releaseName: "Nityaseva ${{ github.ref_name }}"
           releaseBody: |
             ## What's new in ${{ github.ref_name }}
-
             Download the installer for your platform below.
-
             | Platform | File |
             |---|---|
             | Windows | `.msi` or `-setup.exe` |
-            | macOS | `.dmg` |
+            | macOS Apple Silicon | `-aarch64.dmg` |
+            | macOS Intel | `-x64.dmg` |
             | Linux | `.AppImage` or `.deb` |
-
-            The app will also notify you automatically if you already have Nityaseva installed.
           releaseDraft: true
           prerelease: false
           args: ${{ matrix.args }}
