@@ -29,8 +29,8 @@ jobs:
           - platform: macos-latest
             args: "--target x86_64-apple-darwin"
 
-          - platform: ubuntu-22.04
-            args: ""
+          # - platform: ubuntu-22.04
+          #   args: ""
 
     runs-on: ${{ matrix.platform }}
 
@@ -53,18 +53,18 @@ jobs:
         with:
           workspaces: "./src-tauri -> target"
 
-      - name: Install Linux dependencies
-        if: matrix.platform == 'ubuntu-22.04'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            libwebkit2gtk-4.1-dev \
-            libsoup-3.0-dev \
-            libappindicator3-dev \
-            librsvg2-dev \
-            patchelf \
-            libssl-dev \
-            libgtk-3-dev
+      # - name: Install Linux dependencies
+      #   if: matrix.platform == 'ubuntu-22.04'
+      #   run: |
+      #     sudo apt-get update
+      #     sudo apt-get install -y \
+      #       libwebkit2gtk-4.1-dev \
+      #       libsoup-3.0-dev \
+      #       libappindicator3-dev \
+      #       librsvg2-dev \
+      #       patchelf \
+      #       libssl-dev \
+      #       libgtk-3-dev
 
       - name: Install frontend dependencies
         run: bun install
