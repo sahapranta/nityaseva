@@ -42,16 +42,16 @@ function MemberModal({
   const [form, setForm] = useState(
     member
       ? {
-          name: member.name,
-          mobile: member.mobile ?? "",
-          address: member.address ?? "",
-          district: member.district ?? "",
-          pin_code: member.pin_code ?? "",
-          membership_type: member.membership_type ?? ("" as string | number),
-          status: member.status,
-          skip_until: member.skip_until ?? "",
-          notes: member.notes ?? "",
-        }
+        name: member.name,
+        mobile: member.mobile ?? "",
+        address: member.address ?? "",
+        district: member.district ?? "",
+        pin_code: member.pin_code ?? "",
+        membership_type: member.membership_type ?? ("" as string | number),
+        status: member.status,
+        skip_until: member.skip_until ?? "",
+        notes: member.notes ?? "",
+      }
       : { ...emptyInput }
   );
   const [error, setError] = useState("");
@@ -243,6 +243,10 @@ export default function MembersPage() {
   const openAdd = () => { setEditing(null); setModalOpen(true); };
   const openEdit = (m: Member) => { setEditing(m); setModalOpen(true); };
 
+  const handleDonate = (m: Member) => {
+    window.dispatchEvent(new CustomEvent("navigate-donate", { detail: m }));
+  };
+
   return (
     <div className="page">
       {/* Header */}
@@ -309,6 +313,8 @@ export default function MembersPage() {
                 <td className="text-muted">{m.last_donation ? m.last_donation.slice(0, 10) : "—"}</td>
                 <td>
                   <div className="flex gap-1">
+                    <button
+                      className="btn btn-primary btn-sm" onClick={() => handleDonate(m)}>+ Donate</button>
                     <button className="btn btn-ghost btn-sm" onClick={() => openEdit(m)}>Edit</button>
                     <button className="btn btn-ghost btn-sm text-danger" onClick={() => setDeleting(m)}>Del</button>
                   </div>

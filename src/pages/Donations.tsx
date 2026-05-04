@@ -114,18 +114,24 @@ function printReceipt(d: Donation, org: OrgSettings) {
 
 // ── Donation Modal ────────────────────────────────────────────────────
 function DonationModal({
-  donation, donationTypes, onSave, onClose, currentUserId,
+  donation, donationTypes, onSave, onClose, currentUserId, prefillMember
 }: {
   donation: Donation | null;
   donationTypes: DonationType[];
   onSave: (id: number) => void;
   onClose: () => void;
   currentUserId: number;
+  prefillMember?: { id: number; name: string; mobile: string | null } | null;
 }) {
-  const [memberSearch, setMemberSearch] = useState(donation?.member_name ?? "");
   const [memberResults, setMemberResults] = useState<Member[]>([]);
   const [selectedMember, setSelectedMember] = useState<Member | null>(
-    donation ? { id: donation.member_id, name: donation.member_name, mobile: donation.member_mobile } : null
+    donation
+      ? { id: donation.member_id, name: donation.member_name, mobile: donation.member_mobile }
+      : prefillMember ?? null
+  );
+
+  const [memberSearch, setMemberSearch] = useState(
+    donation?.member_name ?? prefillMember?.name ?? ""
   );
   const [form, setForm] = useState({
     donation_type: donation?.donation_type?.toString() ?? "",
@@ -143,7 +149,7 @@ function DonationModal({
       try {
         const res = await invoke<Member[]>("list_members", { search: memberSearch, status: null });
         setMemberResults(res.slice(0, 6));
-      } catch {}
+      } catch { }
     }, 250);
     return () => clearTimeout(t);
   }, [memberSearch, selectedMember]);
@@ -293,6 +299,17 @@ export default function DonationsPage() {
   const [editing, setEditing] = useState<Donation | null>(null);
   const [deleting, setDeleting] = useState<Donation | null>(null);
   const [totalAmount, setTotalAmount] = useState(0);
+  const [prefillMember, setPrefillMember] = useState<{ id: number; name: string; mobile: string | null } | null>(null);
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const member = (e as CustomEvent).detail;
+      setPrefillMember(member);
+      setEditing(null);
+      setModalOpen(true);
+    };
+    window.addEventListener("open-donation-modal", handler);
+    return () => window.removeEventListener("open-donation-modal", handler);
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -439,6 +456,7 @@ export default function DonationsPage() {
           onSave={handleSaved}
           onClose={() => { setModalOpen(false); setEditing(null); }}
           currentUserId={user?.id ?? 0}
+          prefillMember={prefillMember}
         />
       )}
 

@@ -10,8 +10,14 @@ interface Member {
   membership_type_name: string | null;
 }
 
+export interface SearchAction {
+  page: string;
+  member?: Member;
+  openDonation?: boolean;
+}
+
 interface Props {
-  onNavigate: (page: string, memberId?: number) => void;
+  onNavigate: (action: SearchAction) => void;
 }
 
 export function GlobalSearch({ onNavigate }: Props) {
@@ -22,7 +28,6 @@ export function GlobalSearch({ onNavigate }: Props) {
   const [highlighted, setHighlighted] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Cmd+K / Ctrl+K to open
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "f") {
@@ -37,6 +42,7 @@ export function GlobalSearch({ onNavigate }: Props) {
 
   useEffect(() => {
     if (open) setTimeout(() => inputRef.current?.focus(), 50);
+    else { setQuery(""); setResults([]); }
   }, [open]);
 
   useEffect(() => {
@@ -44,9 +50,7 @@ export function GlobalSearch({ onNavigate }: Props) {
     const t = setTimeout(async () => {
       setLoading(true);
       try {
-        const data = await invoke<Member[]>("list_members", {
-          search: query, status: null,
-        });
+        const data = await invoke<Member[]>("list_members", { search: query, status: null });
         setResults(data.slice(0, 8));
         setHighlighted(0);
       } catch {}
@@ -55,17 +59,20 @@ export function GlobalSearch({ onNavigate }: Props) {
     return () => clearTimeout(t);
   }, [query]);
 
-  const select = (_m: Member) => {
-    onNavigate("members");
+  const goToMember = (m: Member) => {
+    onNavigate({ page: "members", member: m });
     setOpen(false);
-    setQuery("");
-    setResults([]);
+  };
+
+  const goToDonation = (m: Member) => {
+    onNavigate({ page: "donations", member: m, openDonation: true });
+    setOpen(false);
   };
 
   const handleKey = (e: React.KeyboardEvent) => {
     if (e.key === "ArrowDown") { e.preventDefault(); setHighlighted(h => Math.min(h + 1, results.length - 1)); }
     if (e.key === "ArrowUp")   { e.preventDefault(); setHighlighted(h => Math.max(h - 1, 0)); }
-    if (e.key === "Enter" && results[highlighted]) select(results[highlighted]);
+    if (e.key === "Enter" && results[highlighted]) goToMember(results[highlighted]);
     if (e.key === "Escape") setOpen(false);
   };
 
@@ -83,13 +90,12 @@ export function GlobalSearch({ onNavigate }: Props) {
     >
       <div
         style={{
-          width: 540, background: "var(--color-surface-2)",
+          width: 580, background: "var(--color-surface-2)",
           borderRadius: "var(--radius-lg)", border: "1px solid var(--color-border)",
           boxShadow: "0 16px 48px rgba(0,0,0,0.2)", overflow: "hidden",
         }}
         onClick={e => e.stopPropagation()}
       >
-        {/* Input */}
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 16px", borderBottom: "1px solid var(--color-border-soft)" }}>
           <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="var(--color-text-muted)" strokeWidth={2} strokeLinecap="round">
             <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0" />
@@ -105,74 +111,68 @@ export function GlobalSearch({ onNavigate }: Props) {
               fontSize: 16, color: "var(--color-text-primary)", fontFamily: "var(--font-sans)",
             }}
           />
-          <kbd style={{
-            padding: "2px 7px", borderRadius: 4, fontSize: 11,
-            background: "var(--color-surface-4)", border: "1px solid var(--color-border)",
-            color: "var(--color-text-muted)", fontFamily: "var(--font-mono)",
-          }}>Esc</kbd>
+          <kbd style={kbdStyle}>Esc</kbd>
         </div>
 
-        {/* Results */}
-        {loading && (
-          <div style={{ padding: "16px", textAlign: "center", color: "var(--color-text-muted)", fontSize: 14 }}>
-            Searching…
-          </div>
-        )}
-
+        {loading && <div style={{ padding: 20, textAlign: "center", color: "var(--color-text-muted)", fontSize: 14 }}>Searching…</div>}
         {!loading && query && results.length === 0 && (
-          <div style={{ padding: "20px 16px", textAlign: "center", color: "var(--color-text-muted)", fontSize: 14 }}>
-            No members found for "{query}"
-          </div>
+          <div style={{ padding: 24, textAlign: "center", color: "var(--color-text-muted)", fontSize: 14 }}>No members found for "{query}"</div>
         )}
 
         {results.length > 0 && (
-          <div style={{ maxHeight: 360, overflowY: "auto" }}>
+          <div style={{ maxHeight: 380, overflowY: "auto" }}>
             {results.map((m, i) => (
               <div
                 key={m.id}
-                onClick={() => select(m)}
                 style={{
-                  display: "flex", alignItems: "center", gap: 12,
-                  padding: "10px 16px", cursor: "pointer",
+                  display: "flex", alignItems: "center", gap: 12, padding: "10px 16px",
                   background: i === highlighted ? "var(--color-saffron-50)" : "transparent",
                   borderBottom: "1px solid var(--color-border-soft)",
                 }}
                 onMouseEnter={() => setHighlighted(i)}
               >
-                {/* Avatar */}
                 <div style={{
-                  width: 36, height: 36, borderRadius: "50%", flexShrink: 0,
+                  width: 38, height: 38, borderRadius: "50%", flexShrink: 0,
                   background: m.status === "active" ? "var(--color-saffron-100)" : "var(--color-surface-4)",
                   display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: 14, fontWeight: 700,
+                  fontSize: 15, fontWeight: 700,
                   color: m.status === "active" ? "var(--color-saffron-700)" : "var(--color-text-muted)",
                 }}>
                   {m.name.charAt(0).toUpperCase()}
                 </div>
 
-                <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ flex: 1, minWidth: 0, cursor: "pointer" }} onClick={() => goToMember(m)}>
                   <div style={{ fontWeight: 600, fontSize: 15 }}>{m.name}</div>
                   <div style={{ fontSize: 13, color: "var(--color-text-muted)" }}>
-                    {m.mobile ?? "No mobile"}{m.district ? ` · ${m.district}` : ""}
+                    {m.mobile ?? "No mobile"}
+                    {m.district ? ` · ${m.district}` : ""}
                     {m.membership_type_name ? ` · ${m.membership_type_name}` : ""}
                   </div>
                 </div>
 
-                <span className={`badge ${m.status === "active" ? "badge-success" : "badge-neutral"}`}>
+                <span className={`badge ${m.status === "active" ? "badge-success" : "badge-neutral"}`} style={{ flexShrink: 0 }}>
                   {m.status}
                 </span>
+
+                <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+                  <button className="btn btn-secondary btn-sm" onClick={e => { e.stopPropagation(); goToMember(m); }}>
+                    View
+                  </button>
+                  <button className="btn btn-primary btn-sm" onClick={e => { e.stopPropagation(); goToDonation(m); }}>
+                    + Donate
+                  </button>
+                </div>
               </div>
             ))}
           </div>
         )}
 
-        {/* Footer hint */}
         <div style={{
           padding: "8px 16px", borderTop: "1px solid var(--color-border-soft)",
           display: "flex", gap: 16, fontSize: 12, color: "var(--color-text-muted)",
         }}>
-          <span><kbd style={kbdStyle}>↑</kbd><kbd style={kbdStyle}>↓</kbd> navigate</span>
-          <span><kbd style={kbdStyle}>↵</kbd> go to members</span>
+          <span><kbd style={kbdStyle}>↑↓</kbd> navigate</span>
+          <span><kbd style={kbdStyle}>↵</kbd> view member</span>
           <span><kbd style={kbdStyle}>Esc</kbd> close</span>
         </div>
       </div>
@@ -181,25 +181,23 @@ export function GlobalSearch({ onNavigate }: Props) {
 }
 
 const kbdStyle: React.CSSProperties = {
-  display: "inline-block", padding: "1px 5px", borderRadius: 3,
+  display: "inline-block", padding: "1px 6px", borderRadius: 3,
   background: "var(--color-surface-4)", border: "1px solid var(--color-border)",
-  fontFamily: "var(--font-mono)", fontSize: 11, marginRight: 3,
+  fontFamily: "var(--font-mono)", fontSize: 11, marginRight: 2,
 };
 
-// ── Trigger button for topbar ─────────────────────────────────────────
 export function SearchTrigger() {
-  const trigger = () => window.dispatchEvent(new KeyboardEvent("keydown", { key: "k", metaKey: true, bubbles: true }));
-
+  const trigger = () => window.dispatchEvent(
+    new KeyboardEvent("keydown", { key: "k", metaKey: true, bubbles: true })
+  );
   return (
-    <div
-      onClick={trigger}
-      style={{
-        display: "flex", alignItems: "center", gap: 8,
-        padding: "6px 12px", borderRadius: "var(--radius-md)",
-        border: "1px solid var(--color-border)", background: "var(--color-surface-3)",
-        cursor: "pointer", width: 240, color: "var(--color-text-muted)", fontSize: 14,
-        transition: "border-color 150ms",
-      }}
+    <div onClick={trigger} style={{
+      display: "flex", alignItems: "center", gap: 8,
+      padding: "6px 12px", borderRadius: "var(--radius-md)",
+      border: "1px solid var(--color-border)", background: "var(--color-surface-3)",
+      cursor: "pointer", width: 240, color: "var(--color-text-muted)", fontSize: 14,
+      transition: "border-color 150ms",
+    }}
       onMouseEnter={e => (e.currentTarget.style.borderColor = "var(--color-saffron-400)")}
       onMouseLeave={e => (e.currentTarget.style.borderColor = "var(--color-border)")}
     >
@@ -211,7 +209,7 @@ export function SearchTrigger() {
         padding: "1px 6px", borderRadius: 4, fontSize: 11,
         background: "var(--color-surface-4)", border: "1px solid var(--color-border)",
         fontFamily: "var(--font-mono)", color: "var(--color-text-muted)",
-      }}>⌘K</kbd>
+      }}>⌘F</kbd>
     </div>
   );
 }
