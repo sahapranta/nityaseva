@@ -2,7 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
 import { invoke } from "@tauri-apps/api/core";
-import { AuthProvider } from "./Auth";
+import { AuthProvider } from "./contexts/AuthContext";
 import { LangProvider } from "./contexts/LangContext";
 
 

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useAuth } from "../Auth";
+import { useAuth } from "../contexts/AuthContext";
 import Icon from "./Icon";
 
 export function LogoutButton() {

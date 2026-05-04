@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { useAuth } from "../Auth";
+import { useAuth } from "../contexts/AuthContext";
 
 // ── Types 
 interface Donation {
