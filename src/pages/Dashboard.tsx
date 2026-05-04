@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { useLang } from "../contexts/LangContext";
 
 interface Donation {
   id: number;
@@ -33,6 +34,7 @@ export default function Dashboard() {
   const [monthlyCount, setMonthlyCount] = useState(0);
   const [orgName, setOrgName] = useState("Nityaseva");
   const [loading, setLoading] = useState(true);
+  const { tr } = useLang();
 
   useEffect(() => {
     const today = new Date();
@@ -66,7 +68,7 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="page" style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: 300 }}>
+      <div className="page flex items-center justify-center" style={{ minHeight: 300 }}>
         <span style={{ color: "var(--color-text-muted)" }}>Loading…</span>
       </div>
     );
@@ -76,7 +78,7 @@ export default function Dashboard() {
     <div className="page">
       <div className="page-header">
         <div>
-          <div className="page-title">Dashboard</div>
+          <div className="page-title">{tr("dashboard")}</div>
           <div className="page-subtitle">{orgName} · {monthLabel}</div>
         </div>
       </div>
@@ -84,22 +86,22 @@ export default function Dashboard() {
       {/* Stat cards */}
       <div className="grid-cols-4 mb-4">
         <div className="stat-card">
-          <div className="stat-label">Total Members</div>
+          <div className="stat-label">{tr("totalMembers")}</div>
           <div className="stat-value">{memberCounts.total}</div>
           <div className="stat-sub">{memberCounts.inactive} inactive</div>
         </div>
         <div className="stat-card">
-          <div className="stat-label">Active Members</div>
+          <div className="stat-label">{tr("activeMembers")}</div>
           <div className="stat-value">{memberCounts.active}</div>
           <div className="stat-sub">of {memberCounts.total} total</div>
         </div>
         <div className="stat-card">
-          <div className="stat-label">This Month</div>
+          <div className="stat-label">{tr("thisMonth")}</div>
           <div className="stat-value">{fmt(monthlyTotal)}</div>
           <div className="stat-sub">{monthlyCount} donation{monthlyCount !== 1 ? "s" : ""}</div>
         </div>
         <div className="stat-card">
-          <div className="stat-label">Avg This Month</div>
+          <div className="stat-label">{tr("avgDonation")}</div>
           <div className="stat-value">{monthlyCount ? fmt(monthlyTotal / monthlyCount) : "৳ 0"}</div>
           <div className="stat-sub">per donation</div>
         </div>
@@ -108,7 +110,7 @@ export default function Dashboard() {
       {/* Recent donations */}
       <div className="card">
         <div className="card-header">
-          <div className="card-title">Recent Donations</div>
+          <div className="card-title">{tr("recentDonations")}</div>
           <span style={{ fontSize: 12, color: "var(--color-text-muted)", marginLeft: "auto" }}>
             Last {recentDonations.length} entries
           </span>
@@ -127,8 +129,8 @@ export default function Dashboard() {
             <tbody>
               {recentDonations.length === 0 && (
                 <tr>
-                  <td colSpan={5} style={{ textAlign: "center", padding: 32, color: "var(--color-text-muted)" }}>
-                    No donations recorded yet
+                  <td colSpan={5} className="text-center p-8 text-text-muted">
+                    {tr("noDonationRecorded")}
                   </td>
                 </tr>
               )}
@@ -146,7 +148,7 @@ export default function Dashboard() {
                       ? <span className={`badge ${typeBadgeClass(d.donation_type_name)}`}>{d.donation_type_name}</span>
                       : <span className="text-muted">—</span>}
                   </td>
-                  <td className="font-semibold" style={{ color: "var(--color-saffron-700)", textAlign: "right" }}>
+                  <td className="font-semibold text-saffron-700 text-right">
                     {fmt(d.amount)}
                   </td>
                   <td className="text-muted">{fmtDate(d.donated_at)}</td>

@@ -1,5 +1,5 @@
 import { SearchTrigger } from "./GlobalSearch";
-import { useLang } from "../contexts/LangContext";
+import { useLang, Lang } from "../contexts/LangContext";
 import { useState } from "react";
 import Icon from "./Icon";
 
@@ -7,13 +7,17 @@ export function Topbar({ setActive }: { setActive: (page: string) => void }) {
     const [dbTooltip, setDbTooltip] = useState(false);
     const { lang, setLang } = useLang();
 
+    const langs: { id: Lang; label: string }[] = [
+        { id: "en", label: "ENG" },
+        { id: "bn", label: "বাংলা" },
+    ];
+
     return (
         <header className="topbar">
             {/* Global search trigger */}
             <SearchTrigger />
 
-            <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 6 }}>
-
+            <div className="flex items-center gap-1.5 ml-auto">
                 {/* DB path indicator */}
                 <div className="relative">
                     <button
@@ -26,13 +30,10 @@ export function Topbar({ setActive }: { setActive: (page: string) => void }) {
                         <Icon d="M12 2C6.48 2 2 4.02 2 6.5v11C2 19.98 6.48 22 12 22s10-2.02 10-4.5v-11C22 4.02 17.52 2 12 2zM12 13.5c-4.42 0-8-1.57-8-3.5s3.58-3.5 8-3.5 8 1.57 8 3.5-3.58 3.5-8 3.5z" size={17} />
                     </button>
                     {dbTooltip && (
-                        <div className="absolute right-0 p-[6px_10px] " style={{
+                        <div className="absolute right-0 p-[6px_10px] text-xs text-text-secondary bg-surface-2 rounded-md z-50" style={{
                             top: "calc(100% + 6px)",
-                            background: "var(--color-surface-2)", border: "1px solid var(--color-border)",
-                            borderRadius: "var(--radius-md)",
-                            fontSize: 12, color: "var(--color-text-secondary)",
-                            whiteSpace: "nowrap", boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-                            zIndex: 50,
+                            border: "1px solid var(--color-border)",
+                            whiteSpace: "nowrap", boxShadow: "0 4px 12px rgba(0,0,0,0.1)"
                         }}>
                             📂 Database connected
                         </div>
@@ -40,31 +41,23 @@ export function Topbar({ setActive }: { setActive: (page: string) => void }) {
                 </div>
 
                 {/* Divider */}
-                <div style={{ width: 1, height: 20, background: "var(--color-border)", margin: "0 4px" }} />
+                <div className="bg-border w-[1px] h-5 m-[0_4px]" />
 
-                {/* Language toggle */}
-                <div className="d-flex align-items-center gap-2">
-                    <button
-                        onClick={() => setLang("en")}
-                        style={{
-                            padding: "3px 8px", borderRadius: "var(--radius-sm)", border: "none",
-                            background: lang === "en" ? "var(--color-saffron-100)" : "transparent",
-                            color: lang === "en" ? "var(--color-saffron-700)" : "var(--color-text-muted)",
-                            fontWeight: lang === "en" ? 700 : 400,
-                            cursor: "pointer", fontSize: 13, fontFamily: "var(--font-sans)",
-                        }}
-                    >ENG</button>
-                    <span style={{ color: "var(--color-border)", fontSize: 12 }}>|</span>
-                    <button
-                        onClick={() => setLang("bn")}
-                        style={{
-                            padding: "3px 8px", borderRadius: "var(--radius-sm)", border: "none",
-                            background: lang === "bn" ? "var(--color-saffron-100)" : "transparent",
-                            color: lang === "bn" ? "var(--color-saffron-700)" : "var(--color-text-muted)",
-                            fontWeight: lang === "bn" ? 700 : 400,
-                            cursor: "pointer", fontSize: 13, fontFamily: "var(--font-sans)",
-                        }}
-                    >বাংলা</button>
+                <div className="flex items-center p-1 bg-gray-50 border border-border-soft rounded-full w-fit">
+                    {langs.map((l) => (
+                        <button
+                            key={l.id}
+                            onClick={() => setLang(l.id)}
+                            className={`
+                            px-2 py-1 text-xs font-medium transition-all duration-200 rounded-full cursor-pointer
+                            ${lang === l.id
+                                    ? "bg-saffron-100 text-saffron-700 shadow-sm"
+                                    : "text-text-muted hover:text-saffron-600"}
+                            `}
+                        >
+                            {l.label}
+                        </button>
+                    ))}
                 </div>
             </div>
         </header>

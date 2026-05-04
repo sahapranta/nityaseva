@@ -1,5 +1,6 @@
 import Icon from "./Icon";
 import { LogoutButton } from "./LogoutButton";
+import { useLang } from "../contexts/LangContext";
 
 const icons = {
     dashboard: "M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z M9 22V12h6v10",
@@ -20,27 +21,27 @@ const icons = {
 };
 const navGroups = [
     {
-        label: "Main",
+        label: "main",
         items: [
-            { id: "dashboard", label: "Dashboard", icon: "dashboard" },
-            { id: "members", label: "Members", icon: "members" },
-            { id: "donations", label: "Donations", icon: "donations" },
-            { id: "contacts", label: "Contacts", icon: "contacts" },
+            { id: "dashboard", icon: "dashboard" },
+            { id: "members", icon: "members" },
+            { id: "donations", icon: "donations" },
+            { id: "contacts", icon: "contacts" },
         ],
     },
     {
-        label: "Output",
+        label: "output",
         items: [
-            { id: "labels", label: "Labels", icon: "labels" },
-            { id: "sms", label: "SMS Export", icon: "sms" },
-            { id: "reports", label: "Reports", icon: "reports" },
-            { id: "export", label: "Export Members", icon: "labels" },
+            { id: "labels", icon: "labels" },
+            { id: "sms", icon: "sms" },
+            { id: "reports", icon: "reports" },
+            { id: "export", icon: "labels" },
         ],
     },
     {
-        label: "System",
+        label: "system",
         items: [
-            { id: "settings", label: "Settings", icon: "settings" },
+            { id: "settings", icon: "settings" },
         ],
     },
 ];
@@ -49,6 +50,7 @@ export default function SideNav({ active, setActive }: {
     active: string;
     setActive: (id: string) => void;
 }) {
+    const { tr } = useLang();
     return (
         <aside className="sidebar">
             <div className="sidebar-logo">
@@ -58,7 +60,7 @@ export default function SideNav({ active, setActive }: {
             <nav className="sidebar-nav">
                 {navGroups.map((group) => (
                     <div key={group.label}>
-                        <div className="sidebar-section">{group.label}</div>
+                        <div className="sidebar-section">{tr(group.label)}</div>
                         {group.items.map((item) => (
                             <div
                                 key={item.id}
@@ -68,7 +70,7 @@ export default function SideNav({ active, setActive }: {
                                 <span className="nav-icon">
                                     <Icon d={icons[item.icon as keyof typeof icons]} size={15} />
                                 </span>
-                                {item.label}
+                                {tr(item.id)}
                             </div>
                         ))}
                     </div>

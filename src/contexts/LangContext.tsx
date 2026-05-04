@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, ReactNode } from "react";
 
-type Lang = "en" | "bn";
+export type Lang = "en" | "bn";
 
 const t: Record<string, Record<Lang, string>> = {
   // Nav
@@ -11,7 +11,7 @@ const t: Record<string, Record<Lang, string>> = {
   labels:      { en: "Labels",      bn: "লেবেল" },
   sms:         { en: "SMS Export",  bn: "এসএমএস" },
   reports:     { en: "Reports",     bn: "প্রতিবেদন" },
-  export:      { en: "Export",      bn: "রপ্তানি" },
+  export:      { en: "Export",      bn: "এক্সপোর্ট" },
   settings:    { en: "Settings",    bn: "সেটিংস" },
   // Sections
   main:        { en: "Main",        bn: "প্রধান" },
@@ -26,7 +26,7 @@ const t: Record<string, Record<Lang, string>> = {
   cancel:      { en: "Cancel",      bn: "বাতিল" },
   close:       { en: "Close",       bn: "বন্ধ" },
   loading:     { en: "Loading…",    bn: "লোড হচ্ছে…" },
-  noData:      { en: "No data found", bn: "কোনো তথ্য নেই" },
+  noData:      { en: "No data",     bn: "কোনো তথ্য নেই" },
   // Members
   name:        { en: "Name",        bn: "নাম" },
   mobile:      { en: "Mobile",      bn: "মোবাইল" },
@@ -39,11 +39,13 @@ const t: Record<string, Record<Lang, string>> = {
   amount:      { en: "Amount",      bn: "পরিমাণ" },
   date:        { en: "Date",        bn: "তারিখ" },
   type:        { en: "Type",        bn: "ধরন" },
-  // Dashboard
-  totalMembers:  { en: "Total Members",    bn: "মোট সদস্য" },
-  activeMembers: { en: "Active Members",   bn: "সক্রিয় সদস্য" },
-  thisMonth:     { en: "This Month",       bn: "এই মাসে" },
-  avgDonation:   { en: "Avg per Donation", bn: "গড় দান" },
+  // Dashboard 
+  totalMembers:  { en: "Total",     bn: "মোট সদস্য" },
+  activeMembers: { en: "Active",    bn: "সক্রিয় সদস্য" },
+  thisMonth:     { en: "This Month",bn: "এই মাসে" },
+  avgDonation:   { en: "Average",   bn: "গড় দান" },
+  recentDonations: { en: "Recent Donations", bn: "সাম্প্রতিক দান" },
+  noDonationRecorded: { en: "No donations recorded yet", bn: "এখনও কোনো দান গৃহীত হয়নি" },
 };
 
 interface LangCtx {
