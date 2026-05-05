@@ -122,6 +122,16 @@ html, body, #root {
   overflow: hidden;
 }
 
+/* Print none */
+@media print {
+  .sidebar {
+    display: none!important;
+  }
+  .topbar{
+    display: none!important;
+  }
+}
+
 .sidebar-logo {
   height: var(--topbar-height);
   display: flex;

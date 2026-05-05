@@ -1,5 +1,7 @@
 import { useState, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { save } from "@tauri-apps/plugin-dialog";
+import { writeTextFile } from "@tauri-apps/plugin-fs";
 
 interface MemberRow {
   id: number;
@@ -29,24 +31,32 @@ const ALL_COLUMNS: { key: keyof MemberRow; label: string }[] = [
   { key: "notes",           label: "Notes" },
 ];
 
-function downloadCSV(filename: string, headers: string[], rows: string[][]) {
+async function downloadCSV(filename: string, headers: string[], rows: string[][]) {
   const lines = [headers, ...rows].map(r =>
     r.map(c => `"${(c ?? "").replace(/"/g, '""')}"`).join(",")
   );
-  const blob = new Blob(["\uFEFF" + lines.join("\r\n"), ], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url; a.download = filename; a.click();
-  URL.revokeObjectURL(url);
+  const content = "\uFEFF" + lines.join("\r\n");
+
+  const path = await save({
+    defaultPath: filename,
+    filters: [{ name: "CSV", extensions: ["csv"] }],
+  });
+  if (!path) return;
+  await writeTextFile(path, content);
 }
 
 // Excel XML format — opens natively in Excel with proper columns
-function downloadExcel(filename: string, headers: string[], rows: string[][]) {
+async function downloadExcel(filename: string, headers: string[], rows: string[][]) {
   const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
-  const headerRow = headers.map(h => `<Cell><Data ss:Type="String">${esc(h)}</Data></Cell>`).join("");
+  const headerRow = headers.map(h =>
+    `<Cell ss:StyleID="header"><Data ss:Type="String">${esc(h)}</Data></Cell>`
+  ).join("");
+
   const dataRows = rows.map(r =>
-    `<Row>${r.map(c => `<Cell><Data ss:Type="String">${esc(c ?? "")}</Data></Cell>`).join("")}</Row>`
+    `<Row>${r.map(c =>
+      `<Cell><Data ss:Type="String">${esc(c ?? "")}</Data></Cell>`
+    ).join("")}</Row>`
   ).join("\n");
 
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
@@ -60,18 +70,18 @@ function downloadExcel(filename: string, headers: string[], rows: string[][]) {
   </Style>
  </Styles>
  <Worksheet ss:Name="Members">
-  <Table>
-   <Row>${headerRow.replace(/<Cell>/g, '<Cell ss:StyleID="header">')}</Row>
+  <Table>${headerRow.replace(/^/, "<Row>").replace(/$/, "</Row>")}
    ${dataRows}
   </Table>
  </Worksheet>
 </Workbook>`;
 
-  const blob = new Blob([xml], { type: "application/vnd.ms-excel;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url; a.download = filename; a.click();
-  URL.revokeObjectURL(url);
+  const path = await save({
+    defaultPath: filename,
+    filters: [{ name: "Excel", extensions: ["xls"] }],
+  });
+  if (!path) return;
+  await writeTextFile(path, xml);
 }
 
 export default function MemberExportPage() {
@@ -117,14 +127,14 @@ export default function MemberExportPage() {
     })
   );
 
-  const handleCSV = () => {
+  const handleCSV = async () => {
     const date = new Date().toISOString().slice(0, 10);
-    downloadCSV(`members-${statusFilter || "all"}-${date}.csv`, headers, tableRows);
+    await downloadCSV(`members-${statusFilter || "all"}-${date}.csv`, headers, tableRows);
   };
 
-  const handleExcel = () => {
+  const handleExcel = async () => {
     const date = new Date().toISOString().slice(0, 10);
-    downloadExcel(`members-${statusFilter || "all"}-${date}.xls`, headers, tableRows);
+    await downloadExcel(`members-${statusFilter || "all"}-${date}.xls`, headers, tableRows);
   };
 
   return (
