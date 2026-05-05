@@ -9,9 +9,6 @@ on:
 permissions:
   contents: write
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true   # silence Node 20 deprecation warnings
-
 jobs:
   build:
     strategy:
@@ -21,14 +18,14 @@ jobs:
           - platform: windows-latest
             args: ""
 
-          # Build separate binaries for each Mac arch (the correct approach –
-          # passing --target twice to a single invocation is not supported).
           - platform: macos-latest
             args: "--target aarch64-apple-darwin"
 
-          - platform: macos-latest
-            args: "--target x86_64-apple-darwin"
+          # Intel Mac — enable when needed
+          # - platform: macos-latest
+          #   args: "--target x86_64-apple-darwin"
 
+          # Linux — enable when needed
           # - platform: ubuntu-22.04
           #   args: ""
 
@@ -46,13 +43,14 @@ jobs:
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin' || '' }}
 
       - name: Rust cache
         uses: swatinem/rust-cache@v2
         with:
           workspaces: "./src-tauri -> target"
 
+      # Linux dependencies — enable alongside Linux matrix entry
       # - name: Install Linux dependencies
       #   if: matrix.platform == 'ubuntu-22.04'
       #   run: |
@@ -73,8 +71,6 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Only inject signing secrets if they are actually configured.
-          # Remove these two lines entirely if you haven't set up the updater.
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
@@ -82,13 +78,13 @@ jobs:
           releaseName: "Nityaseva ${{ github.ref_name }}"
           releaseBody: |
             ## What's new in ${{ github.ref_name }}
+
             Download the installer for your platform below.
+
             | Platform | File |
             |---|---|
             | Windows | `.msi` or `-setup.exe` |
-            | macOS Apple Silicon | `-aarch64.dmg` |
-            | macOS Intel | `-x64.dmg` |
-            | Linux | `.AppImage` or `.deb` |
+            | macOS (Apple Silicon) | `-aarch64.dmg` |
           releaseDraft: true
           prerelease: false
           args: ${{ matrix.args }}
