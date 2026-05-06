@@ -23,10 +23,14 @@ tauri-plugin-opener = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 tokio = { version = "1.52.1", features = ["time"] }
-rusqlite = { version = "0.39.0", features = ["bundled", "backup"] }
 chrono = { version = "0.4", features = ["clock"] }
 tauri-plugin-dialog = "2.7.1"
 tauri-plugin-fs = "2"
 tauri-plugin-updater = "2.10.1"
 tauri-plugin-process = "2.3.1"
+libsql = { version = "0.9.30", features = ["replication"] }
+aes-gcm = "0.10"
+base64 = "0.22"
+sha2 = "0.10"
+bcrypt = "0.19.1"
 

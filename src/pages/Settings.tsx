@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useUpdater } from "./Updater";
 import { invoke } from "@tauri-apps/api/core";
 import { open, save } from "@tauri-apps/plugin-dialog";
+import { TursoSettingsTab } from "./TursoSetup";
 
 // Types
 interface OrgSettings { [key: string]: string; }
@@ -10,7 +11,7 @@ interface DonationType { id: number; name: string; is_active: number; }
 interface UserRow { id: number; name: string; mobile: string | null; role: string; status: string; }
 
 // Tab bar 
-const TABS = ["Organisation", "Membership Types", "Donation Types", "Users", "Database", "Updates"] as const;
+const TABS = ["Organisation", "Membership Types", "Donation Types", "Users", "Database", "Updates", "Sync"] as const;
 type Tab = typeof TABS[number];
 
 function TabBar({ active, onChange }: { active: Tab; onChange: (t: Tab) => void }) {
@@ -627,6 +628,7 @@ export default function SettingsPage({ currentRole }: { currentRole: string }) {
       {tab === "Database" && <DatabaseTab onToast={showToast} />}
       {tab === "Users" && <UsersTab onToast={showToast} currentRole={currentRole} />}
       {tab === "Updates" && <UpdatesTab />}
+      {tab === "Sync" && <TursoSettingsTab onToast={showToast} />}
       {toast && <Toast msg={toast.msg} ok={toast.ok} />}
     </div>
   );
