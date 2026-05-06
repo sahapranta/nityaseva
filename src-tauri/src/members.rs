@@ -363,9 +363,11 @@ pub async fn toggle_membership_type(
     Ok(())
 }
 
-// ── Internal helper ───────────────────────────────────────────────────
+// Internal helper
 async fn query_count(conn: &libsql::Connection, sql: &str) -> Result<i64, String> {
     let mut rows = conn.query(sql, ()).await.map_err(|e| e.to_string())?;
     let row = rows.next().await.map_err(|e| e.to_string())?.ok_or("No result")?;
-    row.get::<i64>(0).map_err(|e| e.to_string())
+    row.get::<Option<i64>>(0)
+        .map_err(|e| e.to_string())
+        .map(|v| v.unwrap_or(0))
 }

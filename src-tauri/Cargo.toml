@@ -32,4 +32,5 @@ libsql = { version = "0.9.30", features = ["replication"] }
 aes-gcm = "0.10"
 base64 = "0.22"
 sha2 = "0.10"
+bcrypt = "0.19.1"
 

@@ -3,6 +3,7 @@ use crate::db::{open_embedded_replica, DbState};
 use serde::Serialize;
 use std::path::PathBuf;
 use tauri::{AppHandle, Manager, State};
+use base64::Engine;
 
 #[derive(Serialize, Debug)]
 pub struct SyncStatus {
@@ -162,6 +163,9 @@ pub async fn turso_open_from_saved(app: &AppHandle, db: &DbState) -> Result<(), 
         .await
         .ok();
 
+    crate::auth::migrate_users_if_needed(app, &inner.conn).await.ok();
+    migrate_credentials_if_needed(app, &inner.conn).await.ok();
+
     let mut lock = db.0.lock().await;
     *lock = Some(inner);
 
@@ -239,4 +243,30 @@ pub async fn turso_update_credentials(
     db: State<'_, DbState>,
 ) -> Result<(), String> {
     turso_setup(url, auth_token, app, db).await
+}
+
+/// Migrate plaintext credentials to encrypted on first run after upgrade
+pub async fn migrate_credentials_if_needed(
+    app: &AppHandle,
+    conn: &libsql::Connection,
+) -> Result<(), String> {
+    let app_data_path = get_app_data_path(app);
+
+    for key in &["turso_url", "turso_token"] {
+        if let Some(value) = get_setting(conn, key).await? {
+            // Check if it's already encrypted (valid base64 of 12+ bytes)
+            let is_encrypted = base64::engine::general_purpose::STANDARD
+                .decode(&value)
+                .map(|b| b.len() >= 12)
+                .unwrap_or(false);
+
+            if !is_encrypted {
+                // Plaintext — encrypt and overwrite
+                save_encrypted(conn, key, &value, &app_data_path).await?;
+                println!("Migrated {} to encrypted storage", key);
+            }
+        }
+    }
+
+    Ok(())
 }

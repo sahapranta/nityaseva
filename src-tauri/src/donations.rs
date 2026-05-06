@@ -34,20 +34,20 @@ pub struct DonationInput {
 
 fn row_to_donation(r: &libsql::Row) -> Result<Donation, libsql::Error> {
     Ok(Donation {
-        id:                 r.get(0)?,
-        member_id:          r.get(1)?,
-        member_name:        r.get(2)?,
-        member_mobile:      r.get(3)?,
-        member_address:     r.get(4)?,
-        donation_type:      r.get(5)?,
+        id: r.get(0)?,
+        member_id: r.get(1)?,
+        member_name: r.get(2)?,
+        member_mobile: r.get(3)?,
+        member_address: r.get(4)?,
+        donation_type: r.get(5)?,
         donation_type_name: r.get(6)?,
-        amount:             r.get(7)?,
-        paid_for:           r.get(8)?,
-        collected_by:       r.get(9)?,
-        collected_by_name:  r.get(10)?,
-        slip_no:            r.get(11)?,
-        note:               r.get(12)?,
-        donated_at:         r.get(13)?,
+        amount: r.get(7)?,
+        paid_for: r.get(8)?,
+        collected_by: r.get(9)?,
+        collected_by_name: r.get(10)?,
+        slip_no: r.get(11)?,
+        note: r.get(12)?,
+        donated_at: r.get(13)?,
     })
 }
 
@@ -80,7 +80,7 @@ pub async fn list_donations(
         .unwrap_or_else(|| "%".to_string());
 
     let from = from_date.unwrap_or_else(|| "1970-01-01".to_string());
-    let to   = to_date.unwrap_or_else(|| "9999-12-31".to_string());
+    let to = to_date.unwrap_or_else(|| "9999-12-31".to_string());
 
     let sql = format!(
         "{} WHERE (m.name LIKE ?1 OR m.mobile LIKE ?1)
@@ -93,7 +93,10 @@ pub async fn list_donations(
     );
 
     let mut rows = conn
-        .query(&sql, libsql::params![search_val, donation_type, member_id, from, to])
+        .query(
+            &sql,
+            libsql::params![search_val, donation_type, member_id, from, to],
+        )
         .await
         .map_err(|e| e.to_string())?;
 
@@ -130,10 +133,7 @@ pub async fn get_donation(id: i64, db: State<'_, DbState>) -> Result<Donation, S
 }
 
 #[tauri::command]
-pub async fn create_donation(
-    input: DonationInput,
-    db: State<'_, DbState>,
-) -> Result<i64, String> {
+pub async fn create_donation(input: DonationInput, db: State<'_, DbState>) -> Result<i64, String> {
     if input.amount <= 0.0 {
         return Err("Amount must be greater than zero".to_string());
     }
@@ -166,7 +166,11 @@ pub async fn create_donation(
         .query("SELECT last_insert_rowid()", ())
         .await
         .map_err(|e| e.to_string())?;
-    let id_row = id_rows.next().await.map_err(|e| e.to_string())?.ok_or("Insert failed")?;
+    let id_row = id_rows
+        .next()
+        .await
+        .map_err(|e| e.to_string())?
+        .ok_or("Insert failed")?;
     let new_id: i64 = id_row.get(0).map_err(|e| e.to_string())?;
 
     // Auto-generate slip_no if not provided
@@ -249,7 +253,10 @@ pub async fn list_donation_types(db: State<'_, DbState>) -> Result<Vec<serde_jso
     let conn = &inner.conn;
 
     let mut rows = conn
-        .query("SELECT id, name FROM donation_types WHERE is_active = 1 ORDER BY id", ())
+        .query(
+            "SELECT id, name FROM donation_types WHERE is_active = 1 ORDER BY id",
+            (),
+        )
         .await
         .map_err(|e| e.to_string())?;
 
@@ -265,13 +272,18 @@ pub async fn list_donation_types(db: State<'_, DbState>) -> Result<Vec<serde_jso
 }
 
 #[tauri::command]
-pub async fn list_all_donation_types(db: State<'_, DbState>) -> Result<Vec<serde_json::Value>, String> {
+pub async fn list_all_donation_types(
+    db: State<'_, DbState>,
+) -> Result<Vec<serde_json::Value>, String> {
     let lock = db.0.lock().await;
     let inner = lock.as_ref().ok_or("No database open")?;
     let conn = &inner.conn;
 
     let mut rows = conn
-        .query("SELECT id, name, is_active FROM donation_types ORDER BY id", ())
+        .query(
+            "SELECT id, name, is_active FROM donation_types ORDER BY id",
+            (),
+        )
         .await
         .map_err(|e| e.to_string())?;
 
@@ -354,18 +366,28 @@ pub async fn donation_summary(
     let conn = &inner.conn;
 
     let from = from_date.unwrap_or_else(|| "1970-01-01".to_string());
-    let to   = to_date.unwrap_or_else(|| "9999-12-31".to_string());
+    let to = to_date.unwrap_or_else(|| "9999-12-31".to_string());
 
     let mut total_rows = conn
         .query(
-            "SELECT COALESCE(SUM(amount), 0) FROM donations
-             WHERE date(donated_at) BETWEEN date(?1) AND date(?2)",
+            "SELECT COALESCE(SUM(CAST(amount AS REAL)), 0.0)
+         FROM donations
+         WHERE date(donated_at) BETWEEN date(?1) AND date(?2)",
             libsql::params![from.clone(), to.clone()],
         )
         .await
         .map_err(|e| e.to_string())?;
-    let total_row = total_rows.next().await.map_err(|e| e.to_string())?.ok_or("No result")?;
-    let total: f64 = total_row.get(0).map_err(|e| e.to_string())?;
+
+    let total_row = total_rows
+        .next()
+        .await
+        .map_err(|e| e.to_string())?
+        .ok_or("No result")?;
+
+    let total = total_row
+        .get::<Option<f64>>(0)
+        .map_err(|e| e.to_string())?
+        .unwrap_or(0.0);
 
     let mut count_rows = conn
         .query(
@@ -375,7 +397,11 @@ pub async fn donation_summary(
         )
         .await
         .map_err(|e| e.to_string())?;
-    let count_row = count_rows.next().await.map_err(|e| e.to_string())?.ok_or("No result")?;
+    let count_row = count_rows
+        .next()
+        .await
+        .map_err(|e| e.to_string())?
+        .ok_or("No result")?;
     let count: i64 = count_row.get(0).map_err(|e| e.to_string())?;
 
     Ok(serde_json::json!({ "total": total, "count": count }))
