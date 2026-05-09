@@ -82,6 +82,13 @@ export default function SetupWizard({ onDone }: { onDone: () => void }) {
                     {error && <p className="text-xs text-red-500 mt-2">{error}</p>}
                 </div>
             )}
+            {step === "confirm" && (
+                <div className="flex items-center gap-4 flex-col">
+                    <p className="text-xs text-text-secondary text-center">Confirm your PIN</p>
+                    <PinPad onComplete={handleConfirm} />
+                    {error && <p className="text-xs text-red-500 mt-2">{error}</p>}
+                </div>
+            )}
         </AuthShell>
     );
 }

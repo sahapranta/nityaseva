@@ -111,52 +111,55 @@ export default function Dashboard() {
       <div className="card">
         <div className="card-header">
           <div className="card-title">{tr("recentDonations")}</div>
-          <span style={{ fontSize: 12, color: "var(--color-text-muted)", marginLeft: "auto" }}>
+          <span className="text-xs text-muted ml-auto">
             Last {recentDonations.length} entries
           </span>
         </div>
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Slip</th>
-                <th>Member</th>
-                <th>Type</th>
-                <th>Amount</th>
-                <th>Date</th>
-              </tr>
-            </thead>
-            <tbody>
-              {recentDonations.length === 0 && (
-                <tr>
-                  <td colSpan={5} className="text-center p-8 text-text-muted">
-                    {tr("noDonationRecorded")}
-                  </td>
-                </tr>
-              )}
-              {recentDonations.map(d => (
-                <tr key={d.id}>
-                  <td className="text-muted" style={{ fontSize: 11 }}>{d.slip_no ?? "—"}</td>
-                  <td>
-                    <div className="font-medium">{d.member_name}</div>
-                    {d.member_mobile && (
-                      <div className="text-muted" style={{ fontSize: 11 }}>{d.member_mobile}</div>
+
+        {recentDonations.length === 0 ? (
+          <div className="py-10 text-center text-sm text-muted">
+            {tr("noDonationRecorded")}
+          </div>
+        ) : (
+          <div>
+            {recentDonations.map((d, i) => (
+              <div
+                key={d.id}
+                className={`grid grid-cols-[1fr_auto] items-center px-4 py-3 gap-x-4 gap-y-1 transition-colors hover:bg-[var(--color-surface-3)] ${i < recentDonations.length - 1 ? "border-b border-[var(--color-border-soft)]" : ""
+                  }`}
+              >
+                {/* Left */}
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-semibold text-sm text-[var(--color-text-primary)] truncate">
+                      {d.member_name}
+                    </span>
+                    {d.donation_type_name && (
+                      <span className={`badge ${typeBadgeClass(d.donation_type_name)} text-[11px] py-0 px-2 shrink-0`}>
+                        {d.donation_type_name}
+                      </span>
                     )}
-                  </td>
-                  <td>
-                    {d.donation_type_name
-                      ? <span className={`badge ${typeBadgeClass(d.donation_type_name)}`}>{d.donation_type_name}</span>
-                      : <span className="text-muted">—</span>}
-                  </td>
-                  <td className="font-semibold text-saffron-700 text-right">
+                  </div>
+                  <div className="flex items-center gap-2 flex-wrap mt-0.5">
+                    {d.member_mobile && (
+                      <span className="text-xs text-muted">{d.member_mobile}</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Right */}
+                <div className="text-right shrink-0">
+                  <div className="font-bold text-[15px] text-[var(--color-saffron-700)] tracking-tight whitespace-nowrap">
                     {fmt(d.amount)}
-                  </td>
-                  <td className="text-muted">{fmtDate(d.donated_at)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                  </div>
+                  <div className="text-[11px] text-muted mt-0.5">
+                    {fmtDate(d.donated_at)}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

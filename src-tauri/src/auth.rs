@@ -9,13 +9,12 @@ use tauri::{AppHandle, Manager, State};
 pub struct UserRow {
     pub id: i64,
     pub name: String,
-    pub mobile: Option<String>,
+    pub mobile: String,
     pub role: String,
     pub status: String,
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────
-
+// ── Helpers
 fn get_app_data_path(app: &AppHandle) -> String {
     app.path()
         .app_data_dir()
@@ -24,15 +23,15 @@ fn get_app_data_path(app: &AppHandle) -> String {
 }
 
 /// Decrypt mobile if encrypted, return as-is if plaintext
-fn maybe_decrypt(value: Option<String>, app_data_path: &str) -> Option<String> {
-    value.map(|v| {
-        if is_encrypted(&v) {
-            decrypt(&v, app_data_path).unwrap_or(v)
-        } else {
-            v
-        }
-    })
-}
+// fn maybe_decrypt(value: Option<String>, app_data_path: &str) -> Option<String> {
+//     value.map(|v| {
+//         if is_encrypted(&v) {
+//             decrypt(&v, app_data_path).unwrap_or(v)
+//         } else {
+//             v
+//         }
+//     })
+// }
 
 /// Decrypt role — always encrypted at rest
 fn decrypt_role(value: String, app_data_path: &str) -> String {
@@ -45,23 +44,22 @@ fn decrypt_role(value: String, app_data_path: &str) -> String {
 
 /// Build a UserRow from a libsql Row, decrypting sensitive fields
 fn row_to_user(r: &libsql::Row, app_data_path: &str) -> Result<UserRow, libsql::Error> {
-    let id: i64          = r.get(0)?;
-    let name: String     = r.get(1)?;
-    let mobile: Option<String> = r.get(2)?;
-    let role: String     = r.get(3)?;
-    let status: String   = r.get(4)?;
+    let id: i64 = r.get(0)?;
+    let name: String = r.get(1)?;
+    let mobile: String = r.get(2)?;
+    let role: String = r.get(3)?;
+    let status: String = r.get(4)?;
 
     Ok(UserRow {
         id,
         name,
-        mobile: maybe_decrypt(mobile, app_data_path),
+        mobile,
         role: decrypt_role(role, app_data_path),
         status,
     })
 }
 
-// ── Commands ──────────────────────────────────────────────────────────
-
+// ── Commands
 #[tauri::command]
 pub async fn has_users(db: State<'_, DbState>) -> Result<bool, String> {
     let lock = db.0.lock().await;
@@ -73,8 +71,12 @@ pub async fn has_users(db: State<'_, DbState>) -> Result<bool, String> {
         .await
         .map_err(|e| e.to_string())?;
 
-    let row = rows.next().await.map_err(|e| e.to_string())?.ok_or("No result")?;
-    let count: i64 = row.get(0).map_err(|e| e.to_string())?;
+    let row = rows
+        .next()
+        .await
+        .map_err(|e| e.to_string())?
+        .ok_or("No result")?;
+    let count: i64 = row.get(0).map_err(|e| e.to_string())?;    
 
     Ok(count > 0)
 }
@@ -82,7 +84,7 @@ pub async fn has_users(db: State<'_, DbState>) -> Result<bool, String> {
 #[tauri::command]
 pub async fn create_super_admin(
     name: String,
-    mobile: Option<String>,
+    mobile: String,
     passcode: String,
     app: AppHandle,
     db: State<'_, DbState>,
@@ -91,30 +93,43 @@ pub async fn create_super_admin(
         return Err("Passcode must be exactly 6 digits".to_string());
     }
 
+    if mobile.len() != 11
+        || !mobile.starts_with("01")
+        || !mobile.chars().all(|c| c.is_ascii_digit())
+    {
+        return Err("Please enter a valid mobile number.".to_string());
+    }
+
     let lock = db.0.lock().await;
     let inner = lock.as_ref().ok_or("No database open")?;
     let conn = &inner.conn;
     let app_data_path = get_app_data_path(&app);
-
     // Only allow if no users exist
-    let mut rows = conn.query("SELECT COUNT(*) FROM users", ()).await.map_err(|e| e.to_string())?;
-    let row = rows.next().await.map_err(|e| e.to_string())?.ok_or("No result")?;
+    let mut rows = conn
+        .query("SELECT COUNT(*) FROM users", ())
+        .await
+        .map_err(|e| e.to_string())?;
+
+    let row = rows
+        .next()
+        .await
+        .map_err(|e| e.to_string())?
+        .ok_or("No result")?;
+
     let count: i64 = row.get(0).map_err(|e| e.to_string())?;
+
     if count > 0 {
-        return Err("Setup already complete".to_string());
+        return Err("Setup is already completed".to_string());
     }
 
     let hashed_passcode = hash_passcode(&passcode)?;
-    let encrypted_role  = encrypt("super_admin", &app_data_path)?;
-    let encrypted_mobile = mobile
-        .as_deref()
-        .map(|m| encrypt(m, &app_data_path))
-        .transpose()?;
+    let role: String = "super_admin".to_string();
+    let encrypted_role = encrypt(&role, &app_data_path)?;
 
     conn.execute(
         "INSERT INTO users (name, mobile, passcode, role, status)
          VALUES (?1, ?2, ?3, ?4, 'active')",
-        libsql::params![name, encrypted_mobile, hashed_passcode, encrypted_role],
+        libsql::params![name, mobile, hashed_passcode, encrypted_role],
     )
     .await
     .map_err(|e| e.to_string())?;
@@ -124,6 +139,7 @@ pub async fn create_super_admin(
 
 #[tauri::command]
 pub async fn verify_pin(
+    mobile: String,
     passcode: String,
     app: AppHandle,
     db: State<'_, DbState>,
@@ -137,60 +153,47 @@ pub async fn verify_pin(
     let conn = &inner.conn;
     let app_data_path = get_app_data_path(&app);
 
-    // Fetch all active users and verify bcrypt in Rust
-    // (can't do bcrypt comparison in SQL)
     let mut rows = conn
         .query(
-            "SELECT id, name, mobile, role, status, passcode FROM users WHERE status = 'active'",
-            (),
+            "SELECT id, name, mobile, role, status, passcode FROM users
+             WHERE mobile = ?1 AND status = 'active' LIMIT 1",
+            libsql::params![mobile],
         )
         .await
         .map_err(|e| e.to_string())?;
 
-    while let Some(row) = rows.next().await.map_err(|e| e.to_string())? {
-        let stored_passcode: String = row.get(5).map_err(|e| e.to_string())?;
+    let row = rows
+        .next()
+        .await
+        .map_err(|e| e.to_string())?
+        .ok_or("Mobile number not found")?;
 
-        let matches = if is_bcrypt_hash(&stored_passcode) {
-            verify_passcode(&passcode, &stored_passcode)
-        } else {
-            // Plain passcode — migrate on the fly
-            stored_passcode == passcode
-        };
+    let stored_hash: String = row.get(5).map_err(|e| e.to_string())?;
+    let user_id: i64 = row.get(0).map_err(|e| e.to_string())?;
 
-        if matches {
-            // Migrate plain passcode to bcrypt if needed
-            if !is_bcrypt_hash(&stored_passcode) {
-                let hashed = hash_passcode(&passcode)?;
-                let id: i64 = row.get(0).map_err(|e| e.to_string())?;
-                conn.execute(
-                    "UPDATE users SET passcode = ?1 WHERE id = ?2",
-                    libsql::params![hashed, id],
-                )
-                .await
-                .ok();
-            }
+    let is_plain = !is_bcrypt_hash(&stored_hash);
+    let matches = if is_plain {
+        stored_hash == passcode
+    } else {
+        verify_passcode(&passcode, &stored_hash)
+    };
 
-            let user = row_to_user(&row, &app_data_path).map_err(|e| e.to_string())?;
-
-            // Update last_login
-            conn.execute(
-                "UPDATE users SET last_login = datetime('now') WHERE id = ?1",
-                libsql::params![user.id],
-            )
-            .await
-            .ok();
-
-            return Ok(user);
-        }
+    if !matches {
+        return Err("Invalid PIN".to_string());
     }
 
-    Err("Invalid PIN".to_string())
+    conn.execute(
+        "UPDATE users SET last_login = datetime('now') WHERE id = ?1",
+        libsql::params![user_id],
+    ).await.ok();
+
+    row_to_user(&row, &app_data_path).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
 pub async fn create_user(
     name: String,
-    mobile: Option<String>,
+    mobile: String,
     passcode: String,
     role: String,
     app: AppHandle,
@@ -199,6 +202,14 @@ pub async fn create_user(
     if passcode.len() != 6 || !passcode.chars().all(|c| c.is_ascii_digit()) {
         return Err("Passcode must be exactly 6 digits".to_string());
     }
+
+    if mobile.len() != 11
+        || !mobile.starts_with("01")
+        || !mobile.chars().all(|c| c.is_ascii_digit())
+    {
+        return Err("Please enter a valid mobile number.".to_string());
+    }
+
     if !["admin", "operator"].contains(&role.as_str()) {
         return Err("Invalid role".to_string());
     }
@@ -208,35 +219,31 @@ pub async fn create_user(
     let conn = &inner.conn;
     let app_data_path = get_app_data_path(&app);
 
-    // Check passcode uniqueness by fetching all and verifying bcrypt
-    let mut rows = conn
-        .query("SELECT passcode FROM users", ())
+    // Add this after the passcode uniqueness check:
+    let mut mobile_rows = conn
+        .query(
+            "SELECT COUNT(*) FROM users WHERE mobile = ?1",
+            libsql::params![mobile.clone()],
+        )
         .await
         .map_err(|e| e.to_string())?;
-
-    while let Some(row) = rows.next().await.map_err(|e| e.to_string())? {
-        let stored: String = row.get(0).map_err(|e| e.to_string())?;
-        let matches = if is_bcrypt_hash(&stored) {
-            verify_passcode(&passcode, &stored)
-        } else {
-            stored == passcode
-        };
-        if matches {
-            return Err("Passcode already in use".to_string());
-        }
+    let mobile_row = mobile_rows
+        .next()
+        .await
+        .map_err(|e| e.to_string())?
+        .ok_or("No result")?;
+    let mobile_count: i64 = mobile_row.get(0).map_err(|e| e.to_string())?;
+    if mobile_count > 0 {
+        return Err("Mobile number already in use".to_string());
     }
 
-    let hashed_passcode  = hash_passcode(&passcode)?;
-    let encrypted_role   = encrypt(&role, &app_data_path)?;
-    let encrypted_mobile = mobile
-        .as_deref()
-        .map(|m| encrypt(m, &app_data_path))
-        .transpose()?;
+    let hashed_passcode = hash_passcode(&passcode)?;
+    let encrypted_role = encrypt(&role, &app_data_path)?;
 
     conn.execute(
         "INSERT INTO users (name, mobile, passcode, role, status)
          VALUES (?1, ?2, ?3, ?4, 'active')",
-        libsql::params![name, encrypted_mobile, hashed_passcode, encrypted_role],
+        libsql::params![name, mobile, hashed_passcode, encrypted_role],
     )
     .await
     .map_err(|e| e.to_string())?;
@@ -271,10 +278,7 @@ pub async fn reset_passcode(
 }
 
 #[tauri::command]
-pub async fn list_users(
-    app: AppHandle,
-    db: State<'_, DbState>,
-) -> Result<Vec<UserRow>, String> {
+pub async fn list_users(app: AppHandle, db: State<'_, DbState>) -> Result<Vec<UserRow>, String> {
     let lock = db.0.lock().await;
     let inner = lock.as_ref().ok_or("No database open")?;
     let conn = &inner.conn;

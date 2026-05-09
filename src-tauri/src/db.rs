@@ -1,4 +1,4 @@
-use libsql::{Builder, Connection, Database};
+use libsql::{Connection, Database};
 use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -9,39 +9,14 @@ pub struct DbInner {
     pub db: Database,
     pub conn: Connection,
     pub _replica_path: PathBuf,
+    pub turso_url: Option<String>,
+    pub turso_token: Option<String>,
 }
 
 impl DbState {
     pub fn new() -> Self {
         DbState(Arc::new(Mutex::new(None)))
     }
-}
-
-/// Open embedded replica — works offline, syncs to Turso when credentials provided
-pub async fn open_embedded_replica(
-    replica_path: PathBuf,
-    url: String,
-    auth_token: String,
-) -> Result<DbInner, String> {
-    std::fs::create_dir_all(replica_path.parent().unwrap()).map_err(|e| e.to_string())?;
-
-    let db = Builder::new_remote_replica(
-        replica_path.to_str().unwrap(),
-        url,
-        auth_token,
-    )
-    .build()
-    .await
-    .map_err(|e| format!("Failed to open database: {}", e))?;
-
-    // Initial sync on open
-    db.sync().await.map_err(|e| format!("Initial sync failed: {}", e))?;
-
-    let conn = db.connect().map_err(|e| e.to_string())?;
-
-    run_migrations(&conn).await?;
-
-    Ok(DbInner { db, conn, _replica_path: replica_path })
 }
 
 /// Run all migrations

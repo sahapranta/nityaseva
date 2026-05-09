@@ -11,7 +11,7 @@ interface DonationType { id: number; name: string; is_active: number; }
 interface UserRow { id: number; name: string; mobile: string | null; role: string; status: string; }
 
 // Tab bar 
-const TABS = ["Organisation", "Membership Types", "Donation Types", "Users", "Database", "Updates", "Sync"] as const;
+const TABS = ["Organization", "Membership Types", "Donation Types", "Users", "Database", "Updates", "Sync"] as const;
 type Tab = typeof TABS[number];
 
 function TabBar({ active, onChange }: { active: Tab; onChange: (t: Tab) => void }) {
@@ -39,7 +39,7 @@ function Toast({ msg, ok }: { msg: string; ok: boolean }) {
   );
 }
 
-// Organisation Tab
+// Organization Tab
 function OrgTab({ onToast }: { onToast: (m: string, ok: boolean) => void }) {
   const [form, setForm] = useState({ name: "", address: "", mobile: "", email: "", website: "" });
   const [saving, setSaving] = useState(false);
@@ -60,7 +60,7 @@ function OrgTab({ onToast }: { onToast: (m: string, ok: boolean) => void }) {
     setSaving(true);
     try {
       await invoke("set_org_settings", { settings: form });
-      onToast("Organisation settings saved", true);
+      onToast("Organization settings saved", true);
     } catch (e) {
       onToast(String(e), false);
     } finally { setSaving(false); }
@@ -70,10 +70,10 @@ function OrgTab({ onToast }: { onToast: (m: string, ok: boolean) => void }) {
 
   return (
     <div className="card" style={{ maxWidth: 520 }}>
-      <div className="card-header"><div className="card-title">Organisation Details</div></div>
+      <div className="card-header"><div className="card-title">Organization Details</div></div>
       <div className="card-body" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         <div className="form-group">
-          <label className="label">Organisation Name *</label>
+          <label className="label">Organization Name *</label>
           <input className="input" value={form.name} onChange={e => set("name", e.target.value)} placeholder="e.g. Nityaseva Sangha" />
         </div>
         <div className="form-group">
@@ -606,7 +606,7 @@ function UpdatesTab() {
 
 // Settings Page
 export default function SettingsPage({ currentRole }: { currentRole: string }) {
-  const [tab, setTab] = useState<Tab>("Organisation");
+  const [tab, setTab] = useState<Tab>("Organization");
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
 
   const showToast = (msg: string, ok: boolean) => {
@@ -622,7 +622,7 @@ export default function SettingsPage({ currentRole }: { currentRole: string }) {
 
       <TabBar active={tab} onChange={setTab} />
 
-      {tab === "Organisation" && <OrgTab onToast={showToast} />}
+      {tab === "Organization" && <OrgTab onToast={showToast} />}
       {tab === "Membership Types" && <MembershipTypesTab onToast={showToast} />}
       {tab === "Donation Types" && <DonationTypesTab onToast={showToast} />}
       {tab === "Database" && <DatabaseTab onToast={showToast} />}

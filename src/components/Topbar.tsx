@@ -1,10 +1,8 @@
 import { SearchTrigger } from "./GlobalSearch";
 import { useLang, Lang } from "../contexts/LangContext";
-import { useState } from "react";
-import Icon from "./Icon";
+import SyncIndicator from "./SyncIndicator";
 
-export function Topbar({ setActive }: { setActive: (page: string) => void }) {
-    const [dbTooltip, setDbTooltip] = useState(false);
+export function Topbar() {
     const { lang, setLang } = useLang();
 
     const langs: { id: Lang; label: string }[] = [
@@ -18,28 +16,8 @@ export function Topbar({ setActive }: { setActive: (page: string) => void }) {
             <SearchTrigger />
 
             <div className="flex items-center gap-1.5 ml-auto">
-                {/* DB path indicator */}
-                <div className="relative">
-                    <button
-                        className="btn btn-ghost btn-icon"
-                        title="Database"
-                        onMouseEnter={() => setDbTooltip(true)}
-                        onMouseLeave={() => setDbTooltip(false)}
-                        onClick={() => setActive("settings")}
-                    >
-                        <Icon d="M12 2C6.48 2 2 4.02 2 6.5v11C2 19.98 6.48 22 12 22s10-2.02 10-4.5v-11C22 4.02 17.52 2 12 2zM12 13.5c-4.42 0-8-1.57-8-3.5s3.58-3.5 8-3.5 8 1.57 8 3.5-3.58 3.5-8 3.5z" size={17} />
-                    </button>
-                    {dbTooltip && (
-                        <div className="absolute right-0 p-[6px_10px] text-xs text-text-secondary bg-surface-2 rounded-md z-50" style={{
-                            top: "calc(100% + 6px)",
-                            border: "1px solid var(--color-border)",
-                            whiteSpace: "nowrap", boxShadow: "0 4px 12px rgba(0,0,0,0.1)"
-                        }}>
-                            📂 Database connected
-                        </div>
-                    )}
-                </div>
-
+                {/* DB path indicator */}                
+                <SyncIndicator />
                 {/* Divider */}
                 <div className="bg-border w-[1px] h-5 m-[0_4px]" />
 

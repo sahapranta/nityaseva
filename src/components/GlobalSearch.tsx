@@ -53,7 +53,7 @@ export function GlobalSearch({ onNavigate }: Props) {
         const data = await invoke<Member[]>("list_members", { search: query, status: null });
         setResults(data.slice(0, 8));
         setHighlighted(0);
-      } catch {}
+      } catch { }
       finally { setLoading(false); }
     }, 200);
     return () => clearTimeout(t);
@@ -71,7 +71,7 @@ export function GlobalSearch({ onNavigate }: Props) {
 
   const handleKey = (e: React.KeyboardEvent) => {
     if (e.key === "ArrowDown") { e.preventDefault(); setHighlighted(h => Math.min(h + 1, results.length - 1)); }
-    if (e.key === "ArrowUp")   { e.preventDefault(); setHighlighted(h => Math.max(h - 1, 0)); }
+    if (e.key === "ArrowUp") { e.preventDefault(); setHighlighted(h => Math.max(h - 1, 0)); }
     if (e.key === "Enter" && results[highlighted]) goToMember(results[highlighted]);
     if (e.key === "Escape") setOpen(false);
   };
@@ -79,13 +79,7 @@ export function GlobalSearch({ onNavigate }: Props) {
   if (!open) return null;
 
   return (
-    <div
-      style={{
-        position: "fixed", inset: 0, zIndex: 300,
-        background: "rgba(0,0,0,0.4)", backdropFilter: "blur(2px)",
-        display: "flex", alignItems: "flex-start", justifyContent: "center",
-        paddingTop: "15vh",
-      }}
+    <div className="fixed inset-0 z-[300] flex justify-center items-start bg-black/40 backdrop-blur-[2px] pt-[15vh]"
       onClick={() => setOpen(false)}
     >
       <div
@@ -96,7 +90,7 @@ export function GlobalSearch({ onNavigate }: Props) {
         }}
         onClick={e => e.stopPropagation()}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 16px", borderBottom: "1px solid var(--color-border-soft)" }}>
+        <div className="flex items-center border-border-soft gap-2.5 px-4 py-3">
           <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="var(--color-text-muted)" strokeWidth={2} strokeLinecap="round">
             <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0" />
           </svg>
@@ -106,10 +100,7 @@ export function GlobalSearch({ onNavigate }: Props) {
             onChange={e => setQuery(e.target.value)}
             onKeyDown={handleKey}
             placeholder="Search members by name or mobile…"
-            style={{
-              flex: 1, border: "none", outline: "none", background: "transparent",
-              fontSize: 16, color: "var(--color-text-primary)", fontFamily: "var(--font-sans)",
-            }}
+            className="border-none outline-none bg-transparent text-text-primary font-sans text-[16px] flex-1"
           />
           <kbd style={kbdStyle}>Esc</kbd>
         </div>
@@ -124,10 +115,9 @@ export function GlobalSearch({ onNavigate }: Props) {
             {results.map((m, i) => (
               <div
                 key={m.id}
+                className="flex items-center gap-3 px-4 py-2.5 border-b border-border-soft"
                 style={{
-                  display: "flex", alignItems: "center", gap: 12, padding: "10px 16px",
                   background: i === highlighted ? "var(--color-saffron-50)" : "transparent",
-                  borderBottom: "1px solid var(--color-border-soft)",
                 }}
                 onMouseEnter={() => setHighlighted(i)}
               >
@@ -150,11 +140,11 @@ export function GlobalSearch({ onNavigate }: Props) {
                   </div>
                 </div>
 
-                <span className={`badge ${m.status === "active" ? "badge-success" : "badge-neutral"}`} style={{ flexShrink: 0 }}>
+                <span className={`badge shrink-0 ${m.status === "active" ? "badge-success" : "badge-neutral"}`}>
                   {m.status}
                 </span>
 
-                <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+                <div className="flex gap-1.5 shrink-0">
                   <button className="btn btn-secondary btn-sm" onClick={e => { e.stopPropagation(); goToMember(m); }}>
                     View
                   </button>
@@ -167,10 +157,7 @@ export function GlobalSearch({ onNavigate }: Props) {
           </div>
         )}
 
-        <div style={{
-          padding: "8px 16px", borderTop: "1px solid var(--color-border-soft)",
-          display: "flex", gap: 16, fontSize: 12, color: "var(--color-text-muted)",
-        }}>
+        <div className="flex gap-4 border-t border-border-soft px-4 py-2 text-xs text-text-muted">
           <span><kbd style={kbdStyle}>↑↓</kbd> navigate</span>
           <span><kbd style={kbdStyle}>↵</kbd> view member</span>
           <span><kbd style={kbdStyle}>Esc</kbd> close</span>
@@ -188,16 +175,11 @@ const kbdStyle: React.CSSProperties = {
 
 export function SearchTrigger() {
   const trigger = () => window.dispatchEvent(
-    new KeyboardEvent("keydown", { key: "k", metaKey: true, bubbles: true })
+    new KeyboardEvent("keydown", { key: "f", metaKey: true, bubbles: true })
   );
   return (
-    <div onClick={trigger} style={{
-      display: "flex", alignItems: "center", gap: 8,
-      padding: "6px 12px", borderRadius: "var(--radius-md)",
-      border: "1px solid var(--color-border)", background: "var(--color-surface-3)",
-      cursor: "pointer", width: 240, color: "var(--color-text-muted)", fontSize: 14,
-      transition: "border-color 150ms",
-    }}
+    <div onClick={trigger}
+      className="flex items-center gap-2 cursor-pointer text-sm rounded-md bg-surface-3 text-text-muted w-60 px-3 py-1.5 border-border transition-[border-color] duration-150"
       onMouseEnter={e => (e.currentTarget.style.borderColor = "var(--color-saffron-400)")}
       onMouseLeave={e => (e.currentTarget.style.borderColor = "var(--color-border)")}
     >
@@ -205,11 +187,7 @@ export function SearchTrigger() {
         <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0" />
       </svg>
       <span style={{ flex: 1 }}>Search members…</span>
-      <kbd style={{
-        padding: "1px 6px", borderRadius: 4, fontSize: 11,
-        background: "var(--color-surface-4)", border: "1px solid var(--color-border)",
-        fontFamily: "var(--font-mono)", color: "var(--color-text-muted)",
-      }}>⌘F</kbd>
+      <kbd className="text-text-muted rounded-sm bg-surface-4 border border-border px-1.5 py-0.5 text-xs font-mono">⌘F</kbd>
     </div>
   );
 }

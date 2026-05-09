@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import LoginScreen from "../pages/Login";
 import SetupWizard from "../components/StepWizard";
 import { TursoSetupScreen } from "../pages/TursoSetup";
@@ -13,63 +14,139 @@ export interface AuthUser {
     status: string;
 }
 
+interface SyncStatus {
+    connected: boolean;
+    last_synced: string | null;
+    message: string;
+}
+
 interface AuthCtx {
     user: AuthUser | null;
     login: (user: AuthUser) => void;
     logout: () => void;
+    syncStatus: SyncStatus | null;
+    syncing: boolean;
+    triggerSync: () => void;
 }
 
 const AuthContext = createContext<AuthCtx>({
     user: null,
     login: () => { },
     logout: () => { },
+    syncStatus: null,
+    syncing: false,
+    triggerSync: () => { },
 });
+
+type AppState = "checking" | "turso_setup" | "user_setup" | "login" | "ready";
 
 export const useAuth = () => useContext(AuthContext);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
     const [user, setUser] = useState<AuthUser | null>(null);
-    const [ready, setReady] = useState<"checking" | "setup" | "login" | "done">("checking");
-    const [tursoReady, setTursoReady] = useState<boolean | null>(null);
+    const [appState, setAppState] = useState<AppState>("checking");
+    const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null);
+    const [syncing, setSyncing] = useState(false);
 
+    // Listen for sync events from Rust
     useEffect(() => {
-        invoke<boolean>("turso_is_configured")
-            .then(ok => setTursoReady(ok))
-            .catch(() => setTursoReady(false));
+        const unlisten = listen<SyncStatus>("sync-status", (event) => {
+            setSyncStatus(event.payload);
+            setSyncing(false);
+        });
+        return () => { unlisten.then(f => f()); };
     }, []);
 
+    // On mount: check DB status → decide what screen to show    
     useEffect(() => {
-        invoke<boolean>("has_users")
-            .then((has) => setReady(has ? "login" : "setup"))
-            .catch(() => setReady("login"));
+        (async () => {
+            try {
+                const status = await invoke<string>("get_db_init_status");
+                if (status === "ok") {
+                    const hasUser = await invoke<boolean>("has_users");
+                    setAppState(hasUser ? "login" : "user_setup");
+                } else {
+                    // Check if turso was ever configured by checking
+                    // if replica file exists via a separate command
+                    const everConfigured = await invoke<boolean>("turso_ever_configured");
+                    setAppState(everConfigured ? "login" : "turso_setup");
+                }
+            } catch {
+                setAppState("turso_setup");
+            }
+        })();
     }, []);
 
-    if (tursoReady === null) return <div>Loading…</div>;
-    if (!tursoReady) return <TursoSetupScreen onDone={() => setTursoReady(true)} />;
+    // Sync after login (background, non-blocking)
+    const syncAfterLogin = async () => {
+        setSyncing(true);
+        try {
+            const status = await invoke<SyncStatus>("turso_sync");
+            setSyncStatus(status);
+        } catch {
+            setSyncing(false);
+        }
+    };
 
+    const triggerSync = async () => {
+        if (syncing) return;
+        setSyncing(true);
+        try {
+            const status = await invoke<SyncStatus>("turso_sync");
+            setSyncStatus(status);
+        } catch (e) {
+            setSyncStatus({ connected: false, last_synced: null, message: String(e) });
+            setSyncing(false);
+        }
+    };
 
-    if (ready === "checking") {
+    const handleLogin = (u: AuthUser) => {
+        setUser(u);
+        setAppState("ready");
+        // Fire and forget — sync in background after login
+        syncAfterLogin();
+    };
+
+    const handleLogout = () => {
+        setUser(null);
+        setAppState("login");
+        setSyncStatus(null);
+    };
+
+    if (appState === "checking") {
         return (
-            <div className="h-screen flex items-center justify-center text-slate-400 font-medium animate-pulse">
-                Initializing...
+            <div className="flex h-screen items-center justify-center bg-surface-0 text-sm text-text-muted">
+                <div className="text-center">
+                    <img src="/logo.png" alt="Nityaseva Logo" className="w-32 shadow-2xl rounded-full" />
+                    Starting…
+                </div>
             </div>
         );
     }
 
-    if (ready === "setup") {
-        return <SetupWizard onDone={() => setReady("login")} />;
+    if (appState === "turso_setup") {
+        return (
+            <TursoSetupScreen onDone={async () => {
+                const hasUser = await invoke<boolean>("has_users");
+                setAppState(hasUser ? "login" : "user_setup");
+            }} />
+        );
     }
 
-    if (ready === "login" || !user) {
+    if (appState === "user_setup") {
+        return <SetupWizard onDone={() => setAppState("login")} />;
+    }
+
+    if (appState === "login" || !user) {
         return (
-            <AuthContext.Provider value={{ user, login: setUser, logout: () => setUser(null) }}>
-                <LoginScreen onLogin={(u) => { setUser(u); setReady("done"); }} />
+            <AuthContext.Provider value={{ user, login: handleLogin, logout: handleLogout, syncStatus, syncing, triggerSync }}>
+                <LoginScreen onLogin={(u) => { handleLogin(u); }} />
             </AuthContext.Provider>
         );
     }
 
     return (
-        <AuthContext.Provider value={{ user, login: setUser, logout: () => { setUser(null); setReady("login"); } }}>
+        <AuthContext.Provider value={{ user, login: handleLogin, logout: handleLogout, syncStatus, syncing, triggerSync }}>
             {children}
         </AuthContext.Provider>
     );

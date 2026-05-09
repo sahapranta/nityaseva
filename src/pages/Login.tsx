@@ -8,11 +8,14 @@ export default function LoginScreen({ onLogin }: { onLogin: (user: AuthUser) => 
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
 
-    const handlePin = async (pin: string) => {
+    const handlePin = async (mobile: string, pin: string) => {
         setLoading(true);
         setError("");
         try {
-            const user = await invoke<AuthUser>("verify_pin", { passcode: pin });
+            const user = await invoke<AuthUser>("verify_pin", {
+                mobile,
+                passcode: pin,
+            });
             onLogin(user);
         } catch (e) {
             setError(String(e));
