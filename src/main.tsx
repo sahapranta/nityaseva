@@ -5,33 +5,25 @@ import { invoke } from "@tauri-apps/api/core";
 import { AuthProvider } from "./contexts/AuthContext";
 import { LangProvider } from "./contexts/LangContext";
 
-
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
     <LangProvider>
-        <AuthProvider>
+      <AuthProvider>
         <App />
-        </AuthProvider>
+      </AuthProvider>
     </LangProvider>
   </React.StrictMode>,
 );
 
-function sleep(seconds: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, seconds * 1000));
+// ── Splash screen coordination ────────────────────────────────────────
+async function setup() {
+  console.log("Frontend setup starting…");
+  try {
+    await invoke("set_complete", { task: "frontend" });
+    console.log("Frontend marked complete");
+  } catch (e) {
+    console.error("Invoke failed:", e);
+  }
 }
 
-async function setup() {    
-    console.log('Performing really heavy frontend setup task...')
-    await sleep(3);
-    console.log('Frontend setup task complete!')
-    try {
-        await invoke('set_complete', { task: 'frontend' });
-        console.log('Frontend marked complete');
-    } catch (e) {
-        console.error('Invoke failed:', e);
-    }
-}
-
-window.addEventListener("DOMContentLoaded", () => {
-    setup()
-});
+window.addEventListener("DOMContentLoaded", () => setup());

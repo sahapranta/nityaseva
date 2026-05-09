@@ -1,34 +1,38 @@
-import { JSX, useEffect, useState } from "react";
+import { useEffect, useState, lazy, Suspense } from "react";
 import "./App.css";
-import MembersPage from "./Members";
-import DonationsPage from "./pages/Donations";
-import SettingsPage from "./pages/Settings";
 import { useAuth } from "./contexts/AuthContext";
-import LabelsPage from "./pages/Labels";
-import DashboardPage from "./pages/Dashboard";
-import ReportsPage from "./pages/Reports";
-import SmsPage from "./pages/Sms";
-import ContactsPage from "./pages/Contacts";
-import MemberExportPage from "./pages/MemberExport";
 import { GlobalSearch, SearchAction } from "./components/GlobalSearch";
 import { Topbar } from "./components/Topbar";
 import SideNav from "./components/SideNav";
 
-export default function App() {
-  const [active, setActive] = useState("dashboard");
-  const { user } = useAuth();
+// Lazy pages
+const DashboardPage = lazy(() => import("./pages/Dashboard"));
+const MembersPage = lazy(() => import("./Members"));
+const DonationsPage = lazy(() => import("./pages/Donations"));
+const ContactsPage = lazy(() => import("./pages/Contacts"));
+const LabelsPage = lazy(() => import("./pages/Labels"));
+const MemberExportPage = lazy(() => import("./pages/MemberExport"));
+const SmsPage = lazy(() => import("./pages/Sms"));
+const ReportsPage = lazy(() => import("./pages/Reports"));
+const SettingsPage = lazy(() => import("./pages/Settings"));
 
-  const pages: Record<string, JSX.Element> = {
-    dashboard: <DashboardPage />,
-    members: <MembersPage />,
-    donations: <DonationsPage />,
-    contacts: <ContactsPage />,
-    labels: <LabelsPage />,
-    export: <MemberExportPage />,
-    sms: <SmsPage />,
-    reports: <ReportsPage />,
-    settings: <SettingsPage currentRole={user?.role ?? "operator"} />
-  };
+// ── Page fallback
+function PageLoader() {
+  return (
+    <div className="flex items-center justify-center h-[100%] text-text-muted text-sm">
+      Loading…
+    </div>
+  );
+}
+
+// ── Route map
+type PageKey =
+  | "dashboard" | "members" | "donations" | "contacts"
+  | "labels" | "export" | "sms" | "reports" | "settings";
+
+export default function App() {
+  const [active, setActive] = useState<PageKey>("dashboard");
+  const { user } = useAuth();
 
   useEffect(() => {
     const handler = (e: Event) => {
@@ -42,30 +46,41 @@ export default function App() {
     return () => window.removeEventListener("navigate-donate", handler);
   }, []);
 
-  const onNavigate = (action: SearchAction) => {
-    const { page, member, openDonation } = action;
-    setActive(page);
+  const onNavigate = ({ page, member, openDonation }: SearchAction) => {
+    setActive(page as PageKey);
     if (openDonation && member) {
-      // small delay so the page renders first
       setTimeout(() => {
         window.dispatchEvent(new CustomEvent("open-donation-modal", { detail: member }));
       }, 200);
     }
-  }
+  };
+
+  const renderPage = () => {
+    switch (active) {
+      case "dashboard": return <DashboardPage />;
+      case "members": return <MembersPage />;
+      case "donations": return <DonationsPage />;
+      case "contacts": return <ContactsPage />;
+      case "labels": return <LabelsPage />;
+      case "export": return <MemberExportPage />;
+      case "sms": return <SmsPage />;
+      case "reports": return <ReportsPage />;
+      case "settings": return <SettingsPage currentRole={user?.role ?? "operator"} />;
+      default: return <DashboardPage />;
+    }
+  };
+
+  const navigate = (id: string) => setActive(id as PageKey);
 
   return (
     <div className="app-shell">
-      {/* Sidebar */}
-      <SideNav active={active} setActive={setActive} />
-
-      {/* Topbar */}
-      <Topbar setActive={setActive} />
-
-      {/* Content */}
+      <SideNav active={active} setActive={navigate} />
+      <Topbar setActive={navigate} />
       <main className="content">
-        {pages[active] ?? null}
+        <Suspense fallback={<PageLoader />}>
+          {renderPage()}
+        </Suspense>
       </main>
-
       <GlobalSearch onNavigate={onNavigate} />
     </div>
   );

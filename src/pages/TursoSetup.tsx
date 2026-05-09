@@ -36,22 +36,14 @@ export function TursoSetupScreen({ onDone }: { onDone: () => void }) {
   };
 
   return (
-    <div style={{
-      height: "100vh", display: "flex", alignItems: "center",
-      justifyContent: "center", background: "var(--color-surface-0)",
-    }}>
-      <div style={{ width: 400 }}>
-        {/* Logo */}
-        <div style={{ textAlign: "center", marginBottom: 28 }}>
-          <div style={{
-            width: 52, height: 52, borderRadius: 14,
-            background: "var(--color-saffron-600)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 26, fontWeight: 700, color: "white",
+    <div className="h-screen flex items-center justify-center bg-surface-0">
+      <div className="w-[400px]">
+        <div className="text-center mb-7">
+          <div className="w-[52px] h-[52px] rounded-[14px] bg-saffron-600 flex items-center justify-center text-white text-xl font-semibold" style={{
             margin: "0 auto 12px",
           }}>ন</div>
-          <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: -0.4 }}>Nityaseva</div>
-          <div style={{ fontSize: 12, color: "var(--color-text-muted)", marginTop: 2 }}>
+          <div className="text-xl font-bold" style={{ letterSpacing: -0.4 }}>Nityaseva</div>
+          <div className="text-xs text-text-muted mt-[2px]">
             Database Setup
           </div>
         </div>
