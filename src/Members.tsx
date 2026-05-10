@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { useLang } from "./contexts/LangContext";
 
 // Types 
 interface Member {
@@ -56,6 +57,7 @@ function MemberModal({
   );
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+  const { tr } = useLang();
 
   const set = (k: string, v: string | number) =>
     setForm((f) => ({ ...f, [k]: v }));
@@ -92,41 +94,41 @@ function MemberModal({
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <div className="modal-title">{member ? "Edit Member" : "Add Member"}</div>
+          <div className="modal-title">{member ? tr("editMember") : tr("addMember")}</div>
           <button className="btn btn-ghost btn-icon" onClick={onClose}>✕</button>
         </div>
 
-        <div className="modal-body" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <div className="modal-body flex flex-col gap-3">
           <div className="grid-cols-2">
             <div className="form-group">
-              <label className="label">Full Name *</label>
-              <input className="input" value={form.name} onChange={e => set("name", e.target.value)} autoFocus />
+              <label className="label">{tr("fullName")} <span className="text-danger">*</span></label>
+              <input className="input" value={form.name} onChange={e => set("name", e.target.value)} autoFocus required/>
             </div>
             <div className="form-group">
-              <label className="label">Mobile</label>
-              <input className="input" value={form.mobile} onChange={e => set("mobile", e.target.value)} placeholder="01XXXXXXXXX" />
+              <label className="label">{tr("mobile")} <span className="text-danger">*</span></label>
+              <input className="input" value={form.mobile} onChange={e => set("mobile", e.target.value)} placeholder="01XXXXXXXXX" required />
             </div>
           </div>
 
           <div className="form-group">
-            <label className="label">Address</label>
+            <label className="label">{tr("address")}</label>
             <input className="input" value={form.address} onChange={e => set("address", e.target.value)} />
           </div>
 
           <div className="grid-cols-2">
             <div className="form-group">
-              <label className="label">District</label>
+              <label className="label">{tr("district")}</label>
               <input className="input" value={form.district} onChange={e => set("district", e.target.value)} />
             </div>
             <div className="form-group">
-              <label className="label">PIN Code</label>
+              <label className="label">{tr("postCode")}</label>
               <input className="input" value={form.pin_code} onChange={e => set("pin_code", e.target.value)} />
             </div>
           </div>
 
           <div className="grid-cols-2">
             <div className="form-group">
-              <label className="label">Membership Type</label>
+              <label className="label">{tr("membershipType")}</label>
               <select className="input" value={form.membership_type} onChange={e => set("membership_type", e.target.value)}>
                 <option value="">— Select —</option>
                 {membershipTypes.map(t => (
@@ -135,34 +137,34 @@ function MemberModal({
               </select>
             </div>
             <div className="form-group">
-              <label className="label">Status</label>
+              <label className="label">{tr("status")}</label>
               <select className="input" value={form.status} onChange={e => set("status", e.target.value)}>
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-                <option value="skip">Skip</option>
+                <option value="active">{tr("active")}</option>
+                <option value="inactive">{tr("inactive")}</option>
+                <option value="skip">{tr("skip")}</option>
               </select>
             </div>
           </div>
 
           {form.status === "skip" && (
             <div className="form-group">
-              <label className="label">Skip Until</label>
+              <label className="label">{tr("skipUntil")}</label>
               <input className="input" type="date" value={form.skip_until} onChange={e => set("skip_until", e.target.value)} />
             </div>
           )}
 
           <div className="form-group">
-            <label className="label">Notes</label>
+            <label className="label">{tr("notes")}</label>
             <textarea className="input" value={form.notes} onChange={e => set("notes", e.target.value)} rows={2} />
           </div>
 
-          {error && <p style={{ color: "var(--color-danger)", fontSize: 12 }}>{error}</p>}
+          {error && <p className="text-danger text-xs">{error}</p>}
         </div>
 
         <div className="modal-footer">
-          <button className="btn btn-secondary" onClick={onClose}>Cancel</button>
+          <button className="btn btn-secondary" onClick={onClose}>{tr("cancel")}</button>
           <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
-            {saving ? "Saving…" : member ? "Save Changes" : "Add Member"}
+            {saving ? tr("saving…") : member ? tr("saveChanges") : tr("addMember")}
           </button>
         </div>
       </div>
@@ -174,15 +176,16 @@ function MemberModal({
 function ConfirmDialog({ message, onConfirm, onCancel }: {
   message: string; onConfirm: () => void; onCancel: () => void;
 }) {
+  const { tr } = useLang();
   return (
     <div className="modal-overlay" onClick={onCancel}>
       <div className="modal" style={{ minWidth: 320, maxWidth: 400 }} onClick={e => e.stopPropagation()}>
-        <div className="modal-body" style={{ padding: "24px 20px", textAlign: "center" }}>
-          <p style={{ fontSize: 14 }}>{message}</p>
+        <div className="modal-body text-center px-5 py-6">
+          <p className="text-sm">{message}</p>
         </div>
         <div className="modal-footer">
-          <button className="btn btn-secondary" onClick={onCancel}>Cancel</button>
-          <button className="btn btn-danger" onClick={onConfirm}>Delete</button>
+          <button className="btn btn-secondary" onClick={onCancel}>{tr("cancel")}</button>
+          <button className="btn btn-danger" onClick={onConfirm}>{tr("delete")}</button>
         </div>
       </div>
     </div>
@@ -205,6 +208,7 @@ export default function MembersPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Member | null>(null);
   const [deleting, setDeleting] = useState<Member | null>(null);
+  const { tr } = useLang();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -252,10 +256,10 @@ export default function MembersPage() {
       {/* Header */}
       <div className="page-header">
         <div>
-          <div className="page-title">Members</div>
+          <div className="page-title">{tr("members")}</div>
           <div className="page-subtitle">{members.length} member{members.length !== 1 ? "s" : ""} found</div>
         </div>
-        <button className="btn btn-primary" onClick={openAdd}>+ Add Member</button>
+        <button className="btn btn-primary" onClick={openAdd}>+ {tr("addMember")}</button>
       </div>
 
       {/* Filters */}
@@ -277,7 +281,7 @@ export default function MembersPage() {
           <option value="inactive">Inactive</option>
           <option value="skip">Skip</option>
         </select>
-        <button className="btn btn-secondary btn-sm" onClick={load}>Refresh</button>
+        <button className="btn btn-secondary btn-sm" onClick={load}>{tr("refresh")}</button>
       </div>
 
       {/* Table */}
@@ -286,21 +290,21 @@ export default function MembersPage() {
           <thead>
             <tr>
               <th>#</th>
-              <th>Name</th>
-              <th>Mobile</th>
-              <th>District</th>
-              <th>Membership</th>
-              <th>Status</th>
-              <th>Last Donation</th>
+              <th>{tr("name")}</th>
+              <th>{tr("mobile")}</th>
+              <th>{tr("district")}</th>
+              <th>{tr("membership")}</th>
+              <th>{tr("status")}</th>
+              <th>{tr("lastDonation")}</th>
               <th></th>
             </tr>
           </thead>
           <tbody>
             {loading && (
-              <tr><td colSpan={8} style={{ textAlign: "center", color: "var(--color-text-muted)", padding: 24 }}>Loading…</td></tr>
+              <tr><td colSpan={8} className="text-center  text-text-muted p-6">{tr("loading")}…</td></tr>
             )}
             {!loading && members.length === 0 && (
-              <tr><td colSpan={8} style={{ textAlign: "center", color: "var(--color-text-muted)", padding: 24 }}>No members found</td></tr>
+              <tr><td colSpan={8} className="text-center text-text-muted p-6">{tr("noMembersFound")}</td></tr>
             )}
             {members.map((m) => (
               <tr key={m.id}>
@@ -314,9 +318,9 @@ export default function MembersPage() {
                 <td>
                   <div className="flex gap-1">
                     <button
-                      className="btn btn-primary btn-sm" onClick={() => handleDonate(m)}>+ Donate</button>
-                    <button className="btn btn-ghost btn-sm" onClick={() => openEdit(m)}>Edit</button>
-                    <button className="btn btn-ghost btn-sm text-danger" onClick={() => setDeleting(m)}>Del</button>
+                      className="btn btn-primary btn-sm" onClick={() => handleDonate(m)}>{tr("donate")}</button>
+                    <button className="btn btn-ghost btn-sm" onClick={() => openEdit(m)}>{tr("edit")}</button>
+                    <button className="btn btn-ghost btn-sm text-danger" onClick={() => setDeleting(m)}>{tr("delete")}</button>
                   </div>
                 </td>
               </tr>

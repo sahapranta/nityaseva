@@ -2,6 +2,7 @@ import { useState, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { save } from "@tauri-apps/plugin-dialog";
 import { writeTextFile } from "@tauri-apps/plugin-fs";
+import { useLang } from "../contexts/LangContext";
 
 interface MemberRow {
   id: number;
@@ -21,9 +22,7 @@ const ALL_COLUMNS: { key: keyof MemberRow; label: string }[] = [
   { key: "id",              label: "Member ID" },
   { key: "name",            label: "Name" },
   { key: "mobile",          label: "Mobile" },
-  { key: "address",         label: "Address" },
-  { key: "district",        label: "District" },
-  { key: "pin_code",        label: "PIN Code" },
+  { key: "address",         label: "Address" }, // acts as Full Address (Address, District, PIN)
   { key: "membership_type", label: "Membership Type" },
   { key: "status",          label: "Status" },
   { key: "last_donation",   label: "Last Donation" },
@@ -85,9 +84,10 @@ async function downloadExcel(filename: string, headers: string[], rows: string[]
 }
 
 export default function MemberExportPage() {
+  const { tr } = useLang();
   const [statusFilter, setStatusFilter] = useState("active");
   const [selectedCols, setSelectedCols] = useState<Set<keyof MemberRow>>(
-    new Set(["id", "name", "mobile", "address", "district", "membership_type", "status"])
+    new Set(["id", "name", "mobile", "address", "membership_type", "status"])
   );
   const [rows, setRows] = useState<MemberRow[]>([]);
   const [loaded, setLoaded] = useState(false);
@@ -116,16 +116,27 @@ export default function MemberExportPage() {
     }
   }, [statusFilter]);
 
+  // Helper to format specific cell values for both export and preview
+  const getFormattedValue = (r: MemberRow, key: keyof MemberRow): string => {
+    // Merge address fields
+    if (key === "address") {
+      const fullAddress = [r.address, r.district, r.pin_code]
+        .filter(part => part && part.trim() !== "")
+        .join(", ");
+      return fullAddress || "";
+    }
+
+    const v = r[key];
+    if (v === null || v === undefined) return "";
+    if (key === "joined_at" || key === "last_donation") return String(v).slice(0, 10);
+    return String(v);
+  };
+
   const activeCols = ALL_COLUMNS.filter(c => selectedCols.has(c.key));
   const headers = activeCols.map(c => c.label);
-  const tableRows = rows.map(r =>
-    activeCols.map(c => {
-      const v = r[c.key];
-      if (v === null || v === undefined) return "";
-      if (c.key === "joined_at" || c.key === "last_donation") return String(v).slice(0, 10);
-      return String(v);
-    })
-  );
+  
+  // Use the helper for table rows so exports get the merged address
+  const tableRows = rows.map(r => activeCols.map(c => getFormattedValue(r, c.key)));
 
   const handleCSV = async () => {
     const date = new Date().toISOString().slice(0, 10);
@@ -141,8 +152,8 @@ export default function MemberExportPage() {
     <div className="page">
       <div className="page-header">
         <div>
-          <div className="page-title">Member Export</div>
-          <div className="page-subtitle">Export member list as CSV or Excel</div>
+          <div className="page-title">{tr("member_export")}</div>
+          <div className="page-subtitle">{tr("export_member_list")}</div>
         </div>
         <div className="flex gap-2">
           <button className="btn btn-secondary" onClick={handleCSV} disabled={!loaded || rows.length === 0}>
@@ -154,11 +165,11 @@ export default function MemberExportPage() {
         </div>
       </div>
 
-      <div className="grid-cols-2" style={{ alignItems: "start" }}>
+      <div className="grid grid-cols-2 items-start gap-4">
         {/* Options */}
         <div className="card">
           <div className="card-header"><div className="card-title">Export Options</div></div>
-          <div className="card-body" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <div className="card-body flex flex-col gap-4">
             <div className="form-group">
               <label className="label">Member Status</label>
               <select className="input" value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setLoaded(false); }}>
@@ -170,9 +181,9 @@ export default function MemberExportPage() {
 
             <div className="form-group">
               <label className="label">Columns to include</label>
-              <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 4 }}>
+              <div className="flex flex-col gap-1.5 mt-1">
                 {ALL_COLUMNS.map(col => (
-                  <label key={col.key} style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 13 }}>
+                  <label key={col.key} className="flex items-center gap-2 cursor-pointer text-sm">
                     <input
                       type="checkbox"
                       checked={selectedCols.has(col.key)}
@@ -192,60 +203,54 @@ export default function MemberExportPage() {
 
         {/* Preview */}
         <div className="card">
-          <div className="card-header">
+          <div className="card-header flex items-center justify-between">
             <div className="card-title">Preview</div>
             {loaded && (
-              <span style={{ fontSize: 12, color: "var(--color-text-muted)", marginLeft: "auto" }}>
+              <span className="text-xs text-gray-500 ml-auto">
                 {rows.length} member{rows.length !== 1 ? "s" : ""}
               </span>
             )}
           </div>
-          <div style={{ overflow: "auto", maxHeight: 480 }}>
+          <div className="overflow-auto max-h-[480px]">
             {!loaded && (
-              <div style={{ padding: 32, textAlign: "center", color: "var(--color-text-muted)" }}>
+              <div className="p-8 text-center text-gray-500">
                 Click "Load Preview" to see data
               </div>
             )}
             {loaded && rows.length === 0 && (
-              <div style={{ padding: 32, textAlign: "center", color: "var(--color-text-muted)" }}>
+              <div className="p-8 text-center text-gray-500">
                 No members found
               </div>
             )}
             {loaded && rows.length > 0 && (
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+              <table className="w-full border-collapse text-xs">
                 <thead>
-                  <tr style={{ background: "var(--color-surface-3)", position: "sticky", top: 0 }}>
+                  <tr className="bg-gray-50 sticky top-0">
                     {activeCols.map(c => (
-                      <th key={c.key} style={{
-                        padding: "6px 10px", textAlign: "left", fontSize: 10,
-                        fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.4,
-                        color: "var(--color-text-muted)", borderBottom: "1px solid var(--color-border)",
-                        whiteSpace: "nowrap",
-                      }}>{c.label}</th>
+                      <th key={c.key} className="px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-wider text-gray-500 border-b border-gray-200 whitespace-nowrap">
+                        {c.label}
+                      </th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {rows.slice(0, 20).map((r) => (
-                    <tr key={r.id} style={{ borderBottom: "1px solid var(--color-border-soft)" }}>
+                    <tr key={r.id} className="border-b border-gray-100">
                       {activeCols.map(c => {
-                        const v = r[c.key];
-                        const display = v !== null && v !== undefined
-                          ? (c.key === "joined_at" || c.key === "last_donation" ? String(v).slice(0, 10) : String(v))
-                          : "—";
+                        const display = getFormattedValue(r, c.key) || "—";
+                        const hasValue = display !== "—";
+                        
                         return (
-                          <td key={c.key} style={{
-                            padding: "6px 10px",
-                            color: v ? "var(--color-text-primary)" : "var(--color-text-muted)",
-                            whiteSpace: "nowrap", maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis",
-                          }}>{display}</td>
+                          <td key={c.key} className={`px-3 py-1.5 max-w-[160px] truncate ${hasValue ? 'text-gray-900' : 'text-gray-400'}`}>
+                            {display}
+                          </td>
                         );
                       })}
                     </tr>
                   ))}
                   {rows.length > 20 && (
                     <tr>
-                      <td colSpan={activeCols.length} style={{ padding: "8px 10px", textAlign: "center", color: "var(--color-text-muted)", fontSize: 11 }}>
+                      <td colSpan={activeCols.length} className="px-3 py-2 text-center text-gray-500 text-[11px]">
                         … and {rows.length - 20} more rows (shown in export)
                       </td>
                     </tr>

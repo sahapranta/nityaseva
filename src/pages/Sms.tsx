@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { useLang } from "../contexts/LangContext";
 
 interface Member {
   id: number;
@@ -31,6 +32,7 @@ function downloadCSV(filename: string, rows: string[][], headers: string[]) {
 }
 
 export default function SmsPage() {
+  const { tr } = useLang();
   const [members, setMembers] = useState<Member[]>([]);
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [search, setSearch] = useState("");
@@ -117,21 +119,21 @@ export default function SmsPage() {
         </div>
         <div className="flex gap-2">
           <button className="btn btn-secondary" onClick={handlePreview} disabled={selectedMembers.length === 0}>
-            👁 Preview
+            👁 {tr("preview")}
           </button>
           <button className="btn btn-primary" onClick={handleExportCSV} disabled={selectedMembers.length === 0}>
-            ⬇ Export CSV
+            ⬇ {tr("csv")}
           </button>
         </div>
       </div>
 
       {/* Message composer */}
       <div className="card mb-4">
-        <div className="card-header"><div className="card-title">Message</div></div>
-        <div className="card-body" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <div className="card-header"><div className="card-title">{tr("message")}</div></div>
+        <div className="card-body flex flex-col gap-3">
           <div className="form-group">
-            <label className="label">Template</label>
-            <div className="flex gap-2" style={{ flexWrap: "wrap" }}>
+            <label className="label">{tr("template")}</label>
+            <div className="flex gap-2 flex-wrap">
               {TEMPLATES.map((t, i) => (
                 <button
                   key={t.label}
@@ -251,10 +253,10 @@ export default function SmsPage() {
               <div className="modal-title">Message Preview</div>
               <button className="btn btn-ghost btn-icon" onClick={() => setPreview(null)}>✕</button>
             </div>
-            <div className="modal-body" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <div className="modal-body flex flex-col gap-3">
               <div className="form-group">
                 <label className="label">To</label>
-                <div style={{ fontSize: 13 }}>{preview.name} — <span style={{ fontFamily: "monospace" }}>{preview.mobile}</span></div>
+                <div style={{ fontSize: 13 }}>{preview.name} — <span className="font-mono">{preview.mobile}</span></div>
               </div>
               <div className="form-group">
                 <label className="label">Message</label>
@@ -264,14 +266,14 @@ export default function SmsPage() {
                   fontSize: 13, lineHeight: 1.7, whiteSpace: "pre-wrap",
                 }}>{preview.text}</div>
               </div>
-              <p style={{ fontSize: 11, color: "var(--color-text-muted)" }}>
+              <p className="text-[11px] text-text-muted">
                 {preview.text.length} characters · {selectedMembers.length} total recipients
               </p>
             </div>
             <div className="modal-footer">
-              <button className="btn btn-secondary" onClick={() => setPreview(null)}>Close</button>
+              <button className="btn btn-secondary" onClick={() => setPreview(null)}>{tr("close")}</button>
               <button className="btn btn-primary" onClick={() => { setPreview(null); handleExportCSV(); }}>
-                ⬇ Export CSV
+                ⬇ {tr("export_csv")}
               </button>
             </div>
           </div>

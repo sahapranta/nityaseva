@@ -89,7 +89,7 @@ export function UpdaterDialog() {
           </div>
         </div>
 
-        <div className="modal-body" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <div className="modal-body flex flex-col gap-3">
           {state.status === "available" && (
             <>
               <p style={{ fontSize: 14 }}>

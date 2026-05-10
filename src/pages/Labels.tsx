@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { writeTextFile, BaseDirectory } from '@tauri-apps/plugin-fs';
 import { appDataDir, join } from '@tauri-apps/api/path';
 import { openPath } from '@tauri-apps/plugin-opener';
+import { useLang } from "../contexts/LangContext";
 
 interface Member {
     id: number;
@@ -130,6 +131,7 @@ function buildLabelsHTML(members: Member[], org: OrgSettings): string {
 
 // Labels Page
 export default function LabelsPage() {
+    const { tr } = useLang();
     const [members, setMembers] = useState<Member[]>([]);
     const [selected, setSelected] = useState<Set<number>>(new Set());
     const [org, setOrg] = useState<OrgSettings>({});
@@ -235,10 +237,10 @@ export default function LabelsPage() {
                 </div>
                 <div className="flex gap-2">
                     <button className="btn btn-secondary" onClick={handlePreview} disabled={selectedMembers.length === 0}>
-                        👁 Preview
+                        👁 {tr("preview")}
                     </button>
                     <button className="btn btn-primary" onClick={handlePrint} disabled={selectedMembers.length === 0}>
-                        🖨 Print {selectedMembers.length} Label{selectedMembers.length !== 1 ? "s" : ""}
+                        🖨 {tr("print")} {selectedMembers.length} Label{selectedMembers.length !== 1 ? "s" : ""}
                     </button>
                 </div>
             </div>
@@ -288,19 +290,19 @@ export default function LabelsPage() {
                                     onChange={toggleAll}
                                 />
                             </th>
-                            <th>Name</th>
-                            <th>Address</th>
-                            <th>District</th>
-                            <th>PIN</th>
-                            <th>Mobile</th>
+                            <th>{tr("name")}</th>
+                            <th>{tr("address")}</th>
+                            <th>{tr("district")}</th>
+                            <th>{tr("pin")}</th>
+                            <th>{tr("mobile")}</th>
                         </tr>
                     </thead>
                     <tbody>
                         {loading && (
-                            <tr><td colSpan={6} style={{ textAlign: "center", color: "var(--color-text-muted)", padding: 24 }}>Loading…</td></tr>
+                            <tr><td colSpan={6} className="text-center text-text-muted p-6">{tr("loading")}…</td></tr>
                         )}
                         {!loading && members.length === 0 && (
-                            <tr><td colSpan={6} style={{ textAlign: "center", color: "var(--color-text-muted)", padding: 24 }}>No active members found</td></tr>
+                            <tr><td colSpan={6} className="text-center text-text-muted p-6">{tr("no_active_members")}</td></tr>
                         )}
                         {members.map(m => (
                             <tr

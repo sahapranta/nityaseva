@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useLang } from "../contexts/LangContext";
+import type { OrgSettings } from "../types/donations";
 
 interface Donation {
   id: number;
@@ -13,8 +14,6 @@ interface Donation {
 }
 
 interface MemberCounts { total: number; active: number; inactive: number; }
-interface OrgSettings { [key: string]: string; }
-
 const fmt = (n: number) => "৳ " + n.toLocaleString("en-BD", { minimumFractionDigits: 0 });
 const fmtDate = (s: string) => new Date(s).toLocaleDateString("en-GB", { day: "2-digit", month: "short" });
 
@@ -28,7 +27,9 @@ function typeBadgeClass(type: string | null) {
 }
 
 export default function Dashboard() {
-  const [memberCounts, setMemberCounts] = useState<MemberCounts>({ total: 0, active: 0, inactive: 0 });
+  const [memberCounts, setMemberCounts] = useState<MemberCounts>({
+    total: 0, active: 0, inactive: 0
+  });
   const [recentDonations, setRecentDonations] = useState<Donation[]>([]);
   const [monthlyTotal, setMonthlyTotal] = useState(0);
   const [monthlyCount, setMonthlyCount] = useState(0);
@@ -69,7 +70,7 @@ export default function Dashboard() {
   if (loading) {
     return (
       <div className="page flex items-center justify-center" style={{ minHeight: 300 }}>
-        <span style={{ color: "var(--color-text-muted)" }}>Loading…</span>
+        <span className="text-text-muted">{tr("loading")}…</span>
       </div>
     );
   }
@@ -125,13 +126,13 @@ export default function Dashboard() {
             {recentDonations.map((d, i) => (
               <div
                 key={d.id}
-                className={`grid grid-cols-[1fr_auto] items-center px-4 py-3 gap-x-4 gap-y-1 transition-colors hover:bg-[var(--color-surface-3)] ${i < recentDonations.length - 1 ? "border-b border-[var(--color-border-soft)]" : ""
+                className={`grid grid-cols-[1fr_auto] items-center px-4 py-3 gap-x-4 gap-y-1 transition-colors hover:bg-surface-3 ${i < recentDonations.length - 1 ? "border-b border-border-soft" : ""
                   }`}
               >
                 {/* Left */}
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-semibold text-sm text-[var(--color-text-primary)] truncate">
+                    <span className="font-semibold text-sm text-text-primary truncate">
                       {d.member_name}
                     </span>
                     {d.donation_type_name && (
@@ -149,7 +150,7 @@ export default function Dashboard() {
 
                 {/* Right */}
                 <div className="text-right shrink-0">
-                  <div className="font-bold text-[15px] text-[var(--color-saffron-700)] tracking-tight whitespace-nowrap">
+                  <div className="font-bold text-[15px] text-saffron-700 tracking-tight whitespace-nowrap">
                     {fmt(d.amount)}
                   </div>
                   <div className="text-[11px] text-muted mt-0.5">

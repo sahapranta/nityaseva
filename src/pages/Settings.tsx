@@ -71,7 +71,7 @@ function OrgTab({ onToast }: { onToast: (m: string, ok: boolean) => void }) {
   return (
     <div className="card" style={{ maxWidth: 520 }}>
       <div className="card-header"><div className="card-title">Organization Details</div></div>
-      <div className="card-body" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      <div className="card-body flex flex-col gap-3">
         <div className="form-group">
           <label className="label">Organization Name *</label>
           <input className="input" value={form.name} onChange={e => set("name", e.target.value)} placeholder="e.g. Nityaseva Sangha" />
@@ -185,7 +185,7 @@ function MembershipTypesTab({ onToast }: { onToast: (m: string, ok: boolean) => 
               <div className="modal-title">{editing.id ? "Edit" : "Add"} Membership Type</div>
               <button className="btn btn-ghost btn-icon" onClick={() => setEditing(null)}>✕</button>
             </div>
-            <div className="modal-body" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <div className="modal-body flex flex-col gap-3">
               <div className="form-group">
                 <label className="label">Name *</label>
                 <input className="input" value={editing.name ?? ""} onChange={e => setEditing(v => ({ ...v!, name: e.target.value }))} autoFocus />
@@ -405,7 +405,7 @@ function UsersTab({ onToast, currentRole }: { onToast: (m: string, ok: boolean) 
     if (pin1 !== pin2) { setError("PINs do not match"); return; }
     setSaving(true); setError("");
     try {
-      await invoke("create_user", { name: form.name, mobile: form.mobile || null, passcode: pin1, role: form.role });
+      await invoke("create_user", { name: form.name, mobile: form.mobile, passcode: pin1, role: form.role });
       setAdding(false);
       setForm({ name: "", mobile: "", role: "operator" });
       setPin1(""); setPin2("");
@@ -475,7 +475,7 @@ function UsersTab({ onToast, currentRole }: { onToast: (m: string, ok: boolean) 
               <div className="modal-title">Add User</div>
               <button className="btn btn-ghost btn-icon" onClick={() => setAdding(false)}>✕</button>
             </div>
-            <div className="modal-body" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <div className="modal-body flex flex-col gap-3">
               <div className="form-group">
                 <label className="label">Name *</label>
                 <input className="input" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} autoFocus />
@@ -503,7 +503,7 @@ function UsersTab({ onToast, currentRole }: { onToast: (m: string, ok: boolean) 
                   <input className="input" type="password" maxLength={6} value={pin2} onChange={e => setPin2(e.target.value.replace(/\D/g, ""))} />
                 </div>
               </div>
-              {error && <p style={{ color: "var(--color-danger)", fontSize: 12 }}>{error}</p>}
+              {error && <p className="text-danger text-xs">{error}</p>}
             </div>
             <div className="modal-footer">
               <button className="btn btn-secondary" onClick={() => setAdding(false)}>Cancel</button>
@@ -532,7 +532,7 @@ function UsersTab({ onToast, currentRole }: { onToast: (m: string, ok: boolean) 
                 <input className="input" type="password" maxLength={6} value={pin2} onChange={e => setPin2(e.target.value.replace(/\D/g, ""))} />
               </div>
         
-              {error && <p className="mt-2" style={{ color: "var(--color-danger)", fontSize: 12 }}>{error}</p>}
+              {error && <p className="mt-2 text-danger text-xs">{error}</p>}
             </div>
             <div className="modal-footer">
               <button className="btn btn-secondary" onClick={() => setResetting(null)}>Cancel</button>

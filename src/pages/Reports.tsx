@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { useLang } from "../contexts/LangContext";
 
 // ── Types ─────────────────────────────────────────────────────────────
 interface CollectionRow {
@@ -147,22 +148,24 @@ function CollectionReport({ orgName }: { orgName: string }) {
     );
   };
 
+  const { tr } = useLang();
+
   return (
     <div>
-      <div className="flex items-center gap-3 mb-4" style={{ flexWrap: "wrap" }}>
-        <div className="form-group" style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-          <label className="label" style={{ whiteSpace: "nowrap" }}>From</label>
+      <div className="flex items-center gap-3 mb-4 flex-wrap">
+        <div className="form-group flex-row items-center gap-2">
+          <label className="label whitespace-nowrap">{tr("from")}</label>
           <input className="input" type="date" value={from} onChange={e => setFrom(e.target.value)} style={{ width: 148 }} />
         </div>
-        <div className="form-group" style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-          <label className="label" style={{ whiteSpace: "nowrap" }}>To</label>
+        <div className="form-group flex-row items-center gap-2">
+          <label className="label whitespace-nowrap">{tr("to")}</label>
           <input className="input" type="date" value={to} onChange={e => setTo(e.target.value)} style={{ width: 148 }} />
         </div>
         {/* Quick filters */}
         {[
-          { label: "This Month", fn: () => { const d = new Date(); setFrom(new Date(d.getFullYear(), d.getMonth(), 1).toISOString().slice(0,10)); setTo(d.toISOString().slice(0,10)); }},
-          { label: "Last Month", fn: () => { const d = new Date(); const f = new Date(d.getFullYear(), d.getMonth()-1, 1); const t2 = new Date(d.getFullYear(), d.getMonth(), 0); setFrom(f.toISOString().slice(0,10)); setTo(t2.toISOString().slice(0,10)); }},
-          { label: "This Year",  fn: () => { const y = new Date().getFullYear(); setFrom(`${y}-01-01`); setTo(`${y}-12-31`); }},
+          { label: tr("this_month"), fn: () => { const d = new Date(); setFrom(new Date(d.getFullYear(), d.getMonth(), 1).toISOString().slice(0,10)); setTo(d.toISOString().slice(0,10)); }},
+          { label: tr("last_month"), fn: () => { const d = new Date(); const f = new Date(d.getFullYear(), d.getMonth()-1, 1); const t2 = new Date(d.getFullYear(), d.getMonth(), 0); setFrom(f.toISOString().slice(0,10)); setTo(t2.toISOString().slice(0,10)); }},
+          { label: tr("this_year"),  fn: () => { const y = new Date().getFullYear(); setFrom(`${y}-01-01`); setTo(`${y}-12-31`); }},
         ].map(q => (
           <button key={q.label} className="btn btn-secondary btn-sm" onClick={q.fn}>{q.label}</button>
         ))}
@@ -436,6 +439,7 @@ function DonorReport({ mode, orgName }: { mode: "top" | "frequent"; orgName: str
 export default function ReportsPage() {
   const [tab, setTab] = useState<Tab>("Collection");
   const [orgName, setOrgName] = useState("Nityaseva");
+  const { tr } = useLang();
 
   useEffect(() => {
     invoke<{ [k: string]: string }>("get_org_settings")
@@ -446,7 +450,7 @@ export default function ReportsPage() {
   return (
     <div className="page">
       <div className="page-header">
-        <div className="page-title">Reports</div>
+        <div className="page-title">{tr("reports")}</div>
       </div>
       <TabBar active={tab} onChange={setTab} />
       {tab === "Collection"       && <CollectionReport orgName={orgName} />}

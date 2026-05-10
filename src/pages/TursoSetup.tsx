@@ -69,7 +69,7 @@ export function TursoSetupScreen({ onDone }: { onDone: () => void }) {
                 placeholder="libsql://your-db-org.turso.io"
                 autoFocus
               />
-              <span style={{ fontSize: 11, color: "var(--color-text-muted)" }}>
+              <span className="text-[11px] text-text-muted">
                 Found in Turso dashboard → Your DB → Connect
               </span>
             </div>
@@ -83,7 +83,7 @@ export function TursoSetupScreen({ onDone }: { onDone: () => void }) {
                 onChange={e => setToken(e.target.value)}
                 placeholder="eyJhbGciOi..."
               />
-              <span style={{ fontSize: 11, color: "var(--color-text-muted)" }}>
+              <span className="text-[11px] text-text-muted">
                 Generate a token in Turso dashboard → Your DB → Generate Token
               </span>
             </div>
