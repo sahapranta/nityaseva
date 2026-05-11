@@ -3,16 +3,18 @@ import { invoke } from "@tauri-apps/api/core";
 import { Donation, DonationType, Member } from "../types/donations";
 import { useLang } from "../contexts/LangContext";
 
-export default function DonationModal({
-    donation, donationTypes, onSave, onClose, currentUserId, prefillMember
-}: {
+interface Props {
     donation: Donation | null;
     donationTypes: DonationType[];
     onSave: (id: number) => void;
     onClose: () => void;
     currentUserId: number;
     prefillMember?: { id: number; name: string; mobile: string | null } | null;
-}) {
+}
+
+export default function DonationModal({
+    donation, donationTypes, onSave, onClose, currentUserId, prefillMember
+}: Props) {
     const [memberResults, setMemberResults] = useState<Member[]>([]);
     const [selectedMember, setSelectedMember] = useState<Member | null>(
         donation
@@ -82,11 +84,15 @@ export default function DonationModal({
         <div className="modal-overlay" onClick={onClose}>
             <div className="modal" style={{ maxWidth: 500 }} onClick={e => e.stopPropagation()}>
                 <div className="modal-header">
-                    <div className="modal-title">{donation ? "Edit Donation" : "New Donation"}</div>
-                    <button className="btn btn-ghost btn-icon" onClick={onClose}>✕</button>
+                    <div className="modal-title">{donation ? tr("edit_donation") : tr("new_donation")}</div>
+                    <button className="btn btn-ghost btn-icon" onClick={onClose}>
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
+                            <path d="M18.364 5.636a1 1 0 0 0-1.414-1.414L12 9.172 7.05 4.222A1 1 0 1 0 5.636 5.636L10.586 12l-4.95 4.95a1 1 0 1 0 1.414 1.414L12 14.828l4.95 4.95a1 1 0 0 0 1.414-1.414L13.414 12l4.95-4.95z" />
+                        </svg>
+                    </button>
                 </div>
 
-                <div className="modal-body flex flex-col gap-3">
+                <div className="modal-body flex flex-col gap-3.5">
                     {/* Member picker */}
                     <div className="form-group relative">
                         <label className="label">{tr("member")} <span className="text-danger">*</span></label>
@@ -115,7 +121,7 @@ export default function DonationModal({
                                                 onMouseLeave={e => (e.currentTarget.style.background = "")}
                                             >
                                                 <div className="font-medium">{m.name}</div>
-                                                {m.mobile && <div className="text-muted text-[11px]">{m.mobile}</div>}
+                                                {m.mobile && <div className="text-muted text-xs">{m.mobile}</div>}
                                             </div>
                                         ))}
                                     </div>
@@ -133,7 +139,7 @@ export default function DonationModal({
                             </select>
                         </div>
                         <div className="form-group">
-                            <label className="label">{tr("amount")} (BDT) *</label>
+                            <label className="label">{tr("amount")} (BDT) <span className="text-danger">*</span></label>
                             <input className="input" type="number" min="1" value={form.amount} onChange={e => set("amount", e.target.value)} placeholder="0.00" />
                         </div>
                     </div>

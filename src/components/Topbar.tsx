@@ -27,7 +27,7 @@ export function Topbar() {
                             key={l.id}
                             onClick={() => setLang(l.id)}
                             className={`
-                            px-2 py-1 text-xs font-medium transition-all duration-200 rounded-full cursor-pointer
+                            px-2.5 py-1.5 text-sm font-bold transition-all duration-200 rounded-full cursor-pointer
                             ${lang === l.id
                                     ? "bg-saffron-100 text-saffron-700 shadow-sm"
                                     : "text-text-muted hover:text-saffron-600"}

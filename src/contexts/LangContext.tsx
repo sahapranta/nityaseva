@@ -13,12 +13,13 @@ const t: Record<string, Record<Lang, string>> = {
   reports:     { en: "Reports",     bn: "প্রতিবেদন" },
   export:      { en: "Export",      bn: "এক্সপোর্ট" },
   settings:    { en: "Settings",    bn: "সেটিংস" },
-  this_month:    { en: "This Month", bn: "এই মাস" },
-  last_month:    { en: "Last Month", bn: "গত মাস" },
-  this_year:     { en: "This Year",  bn: "এই বছর" },
-  last_year:     { en: "Last Year",  bn: "গত বছর" },
-  from:           { en: "From",       bn: "থেকে" },
-  to:             { en: "To",         bn: "পর্যন্ত" },
+  this_month:  { en: "This Month", bn: "এই মাস" },
+  last_month:  { en: "Last Month", bn: "গত মাস" },
+  this_year:   { en: "This Year",  bn: "এই বছর" },
+  last_year:   { en: "Last Year",  bn: "গত বছর" },
+  from:        { en: "From",       bn: "থেকে" },
+  to:          { en: "To",         bn: "পর্যন্ত" },
+  apply:       { en: "Apply",      bn: "প্রয়োগ" },
   // Sections
   main:        { en: "Main",        bn: "প্রধান" },
   output:      { en: "Output",      bn: "আউটপুট" },
@@ -67,6 +68,7 @@ const t: Record<string, Record<Lang, string>> = {
   type:         { en: "Type",           bn: "ধরন" },
   donation_type:{ en: "Donation Type",  bn: "দানের ধরন" },
   new_donation: { en: "New Donation",   bn: "নতুন দান" },
+  edit_donation:{ en: "Edit Donation", bn: "দান সম্পাদনা" },
   clear:        { en: "Clear",          bn: "পরিষ্কার" },
   slip_no:      { en: "Slip No.",       bn: "স্লিপ নং" },
   paid_for:     { en: "Paid For",       bn: "পেইড ফর" },
@@ -76,7 +78,9 @@ const t: Record<string, Record<Lang, string>> = {
   all_types:    { en: "All Types",      bn: "সব ধরন" },
   member:       { en: "Member",         bn: "সদস্য" },
   editMember:   { en: "Edit Member",    bn: "সদস্য সম্পাদনা" },
-  print_receipt:{ en: "Print Receipt",  bn: "রসিদ প্রিন্ট" },  
+  print_receipt:{ en: "Print Receipt",  bn: "রসিদ প্রিন্ট" },
+  record_donation:{ en: "Record Donation", bn: "দান রেকর্ড করুন" },
+  no_donations_found: { en: "No donations found", bn: "কোনো দান পাওয়া যায়নি" },  
   // Contacts
   all_statuses: { en: "All Statuses",   bn: "সব অবস্থা" },
   // sms
@@ -95,6 +99,8 @@ const t: Record<string, Record<Lang, string>> = {
   avgDonation:        { en: "Average",   bn: "গড় দান" },
   recentDonations:    { en: "Recent Donations", bn: "সাম্প্রতিক দান" },
   noDonationRecorded: { en: "No donations recorded yet", bn: "এখনও কোনো দান গৃহীত হয়নি" },
+  // Member View
+  donation_history:   { en: "Donation History", bn: "দানের ইতিহাস" },
 };
 
 interface LangCtx {

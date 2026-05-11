@@ -132,28 +132,28 @@ export default function Dashboard() {
                 {/* Left */}
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-semibold text-sm text-text-primary truncate">
+                    <span className="font-semibold text-text-primary truncate">
                       {d.member_name}
                     </span>
                     {d.donation_type_name && (
-                      <span className={`badge ${typeBadgeClass(d.donation_type_name)} text-[11px] py-0 px-2 shrink-0`}>
+                      <span className={`badge ${typeBadgeClass(d.donation_type_name)} text-xs py-0 px-2 shrink-0`}>
                         {d.donation_type_name}
                       </span>
                     )}
                   </div>
                   <div className="flex items-center gap-2 flex-wrap mt-0.5">
                     {d.member_mobile && (
-                      <span className="text-xs text-muted">{d.member_mobile}</span>
+                      <span className="text-sm text-muted">{d.member_mobile}</span>
                     )}
                   </div>
                 </div>
 
                 {/* Right */}
                 <div className="text-right shrink-0">
-                  <div className="font-bold text-[15px] text-saffron-700 tracking-tight whitespace-nowrap">
+                  <div className="font-bold text-saffron-700 tracking-tight whitespace-nowrap">
                     {fmt(d.amount)}
                   </div>
-                  <div className="text-[11px] text-muted mt-0.5">
+                  <div className="text-sm text-muted mt-0.5">
                     {fmtDate(d.donated_at)}
                   </div>
                 </div>

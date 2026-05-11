@@ -3,11 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { useLang } from "../contexts/LangContext";
 import type { Member } from "../types/member";
 import type { Donation } from "../types/donations";
-
-interface Props {
-    memberId: number;
-    onBack: () => void;
-}
+import { useNavigate, useParams } from "react-router-dom";
 
 // ── Helpers ───────────────────────────────────────────────────────────
 const fmt = (n: number) =>
@@ -28,19 +24,10 @@ function StatusBadge({ status }: { status: string }) {
     return <span className={`badge ${cls}`}>{status}</span>;
 }
 
-function typeBadgeClass(type: string): string {
-    const t = type.toLowerCase();
-    if (t.includes("monthly")) return "badge-info";
-    if (t.includes("festival")) return "badge-warning";
-    if (t.includes("voluntary")) return "badge-success";
-    if (t.includes("tri")) return "badge-neutral";
-    return "badge-neutral";
-}
-
 const PAGE_SIZE = 25;
 
-// ── Member View Page ──────────────────────────────────────────────────
-export default function MemberView({ memberId, onBack }: Props) {
+// Member View Page
+export default function MemberView() {
     const { tr } = useLang();
     const [member, setMember] = useState<Member | null>(null);
     const [donations, setDonations] = useState<Donation[]>([]);
@@ -54,6 +41,10 @@ export default function MemberView({ memberId, onBack }: Props) {
     const [appliedFrom, setAppliedFrom] = useState("");
     const [appliedTo, setAppliedTo] = useState("");
     const [totalDonated, setTotalDonated] = useState(0);
+    const navigate = useNavigate();
+    const { id } = useParams();
+    const memberId = Number(id);
+    const onBack = () => navigate("/members");
 
     // Load member details
     useEffect(() => {
@@ -143,7 +134,6 @@ export default function MemberView({ memberId, onBack }: Props) {
                     </button>
                     <div>
                         <div className="page-title">{member.name}</div>
-                        <div className="page-subtitle">Member profile &amp; donation history</div>
                     </div>
                 </div>
             </div>
@@ -215,7 +205,7 @@ export default function MemberView({ memberId, onBack }: Props) {
             {/* Donation history */}
             <div className="card">
                 <div className="card-header">
-                    <div className="card-title">Donation History</div>
+                    <div className="card-title">{tr("donation_history")}</div>
                     <div className="flex items-center gap-2 ml-auto">
                         {isFiltered && (
                             <span className="badge badge-warning" style={{ fontSize: 11 }}>
@@ -283,55 +273,40 @@ export default function MemberView({ memberId, onBack }: Props) {
                     <table>
                         <thead>
                             <tr>
-                                <th>Slip</th>
+                                <th>#</th>
+                                <th>Date</th>
                                 <th>Type</th>
                                 <th>Paid For</th>
-                                <th>Note</th>
                                 <th>Collected By</th>
                                 <th className="text-right">Amount</th>
-                                <th className="text-right">Date</th>
                             </tr>
                         </thead>
                         <tbody>
                             {donLoading && (
                                 <tr>
-                                    <td colSpan={7} className="text-center text-muted p-8">
+                                    <td colSpan={6} className="text-center text-muted p-8">
                                         {tr('loading')}…
                                     </td>
                                 </tr>
                             )}
                             {!donLoading && donations.length === 0 && (
                                 <tr>
-                                    <td colSpan={7} className="text-center text-muted p-8">
+                                    <td colSpan={6} className="text-center text-muted p-8">
                                         {isFiltered ? "No donations in this date range" : "No donations recorded"}
                                     </td>
                                 </tr>
                             )}
-                            {!donLoading && donations.map(d => (
+                            {!donLoading && donations.map((d, index) => (
                                 <tr key={d.id}>
                                     <td className="text-muted" style={{ fontSize: 11 }}>
-                                        {d.slip_no ?? "—"}
+                                        {index + 1 + (page - 1) * PAGE_SIZE}
                                     </td>
-                                    <td>
-                                        {d.donation_type_name
-                                            ? <span className={`badge ${typeBadgeClass(d.donation_type_name)}`}>
-                                                {d.donation_type_name}
-                                            </span>
-                                            : <span className="text-muted">—</span>
-                                        }
-                                    </td>
+                                    <td className="text-muted">{fmtDateShort(d.donated_at)}</td>
+                                    <td className="text-muted">{d.donation_type_name || <span>—</span>}</td>
                                     <td className="text-muted">{d.paid_for ?? "—"}</td>
-                                    <td className="text-muted" style={{ maxWidth: 180 }}>
-                                        <span className="truncate block">
-                                            {d.note ?? "—"}
-                                        </span>
-                                    </td>
                                     <td className="text-muted">{d.collected_by_name ?? "—"}</td>
-                                    <td className="text-right font-semibold bg-saffron-700 whitespace-nowrap">
+                                    <td className="text-right font-semibold whitespace-nowrap">
                                         {fmt(d.amount)}
-                                    </td>
-                                    <td className="text-right text-muted text-xs whitespace-nowrap">
-                                        {fmtDateShort(d.donated_at)}
                                     </td>
                                 </tr>
                             ))}
@@ -342,10 +317,9 @@ export default function MemberView({ memberId, onBack }: Props) {
                                     <td colSpan={5} style={{ padding: "10px 14px", fontSize: 13 }}>
                                         Page total ({donations.length} donation{donations.length !== 1 ? "s" : ""})
                                     </td>
-                                    <td className="text-right bg-saffron-700 whitespace-nowrap px-3.5 py-2.5">
+                                    <td className="text-right bg-saffron-100 whitespace-nowrap px-3.5 py-2.5">
                                         {fmt(donations.reduce((s, d) => s + d.amount, 0))}
                                     </td>
-                                    <td />
                                 </tr>
                             )}
                         </tbody>

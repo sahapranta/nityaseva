@@ -178,11 +178,17 @@ export default function ContactsPage() {
           <div className="card" style={{ position: "sticky", top: 20 }}>
             <div className="card-header">
               <div className="card-title">{selected.name}</div>
-              <button className="btn btn-ghost btn-icon ml-auto" onClick={() => setSelected(null)}>✕</button>
+              <button className="btn btn-ghost btn-icon ml-auto" onClick={() => setSelected(null)}>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
+                    <path d="M18.364 5.636a1 1 0 0 0-1.414-1.414L12 9.172 7.05 4.222A1 1 0 1 0 5.636 5.636L10.586 12l-4.95 4.95a1 1 0 1 0 1.414 1.414L12 14.828l4.95 4.95a1 1 0 0 0 1.414-1.414L13.414 12l4.95-4.95z" />
+                </svg>
+              </button>
             </div>
             <div className="card-body flex flex-col gap-3">
 
+              <div>
               <StatusBadge status={selected.status} />
+              </div>
 
               {/* Mobile + WhatsApp */}
               {selected.mobile && (

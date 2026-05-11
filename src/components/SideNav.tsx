@@ -1,6 +1,7 @@
 import Icon from "./Icon";
 import { LogoutButton } from "./LogoutButton";
 import { useLang } from "../contexts/LangContext";
+import { useNavigate, useLocation } from "react-router-dom";
 
 const icons = {
     dashboard: "M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z M9 22V12h6v10",
@@ -46,11 +47,12 @@ const navGroups = [
     },
 ];
 
-export default function SideNav({ active, setActive }: {
-    active: string;
-    setActive: (id: string) => void;
-}) {
+export default function SideNav() {
+    const location = useLocation();
+    const active = location.pathname.slice(1).split("/")[0] || "dashboard";
     const { tr } = useLang();
+    const navigate = useNavigate();
+
     return (
         <aside className="sidebar">
             <div className="sidebar-logo">
@@ -65,7 +67,7 @@ export default function SideNav({ active, setActive }: {
                             <div
                                 key={item.id}
                                 className={`nav-item ${active === item.id ? "active" : ""}`}
-                                onClick={() => setActive(item.id)}
+                                onClick={() => navigate(item.id)}
                             >
                                 <span className="nav-icon">
                                     <Icon d={icons[item.icon as keyof typeof icons]} size={15} />

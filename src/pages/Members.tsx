@@ -1,37 +1,17 @@
 import { useEffect, useState, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useLang } from "../contexts/LangContext";
-
+import { Link, useNavigate } from "react-router-dom";
+import ConfirmDialog from '../components/ConfirmDialog'
+import type { InputMember as Member, MembershipType } from "../types/member";
 // Types 
-interface Member {
-  id: number;
-  name: string;
-  mobile: string | null;
-  address: string | null;
-  district: string | null;
-  pin_code: string | null;
-  membership_type: number | null;
-  membership_type_name: string | null;
-  status: "active" | "inactive" | "skip";
-  skip_until: string | null;
-  last_donation: string | null;
-  joined_at: string;
-  notes: string | null;
-}
-
-interface MembershipType {
-  id: number;
-  name: string;
-  amount: number;
-}
-
 const emptyInput = {
   name: "", mobile: "", address: "", district: "",
   pin_code: "", membership_type: "" as string | number,
   status: "active", skip_until: "", notes: "",
 };
 
-// ── Member Form Modal ─────────────────────────────────────────────────
+// Member Form Modal
 function MemberModal({
   member, membershipTypes, onSave, onClose,
 }: {
@@ -95,14 +75,18 @@ function MemberModal({
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <div className="modal-title">{member ? tr("editMember") : tr("addMember")}</div>
-          <button className="btn btn-ghost btn-icon" onClick={onClose}>✕</button>
+          <button className="btn btn-ghost btn-icon" onClick={onClose}>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
+              <path d="M18.364 5.636a1 1 0 0 0-1.414-1.414L12 9.172 7.05 4.222A1 1 0 1 0 5.636 5.636L10.586 12l-4.95 4.95a1 1 0 1 0 1.414 1.414L12 14.828l4.95 4.95a1 1 0 0 0 1.414-1.414L13.414 12l4.95-4.95z" />
+            </svg>
+          </button>
         </div>
 
         <div className="modal-body flex flex-col gap-3">
           <div className="grid-cols-2">
             <div className="form-group">
               <label className="label">{tr("fullName")} <span className="text-danger">*</span></label>
-              <input className="input" value={form.name} onChange={e => set("name", e.target.value)} autoFocus required/>
+              <input className="input" value={form.name} onChange={e => set("name", e.target.value)} autoFocus required />
             </div>
             <div className="form-group">
               <label className="label">{tr("mobile")} <span className="text-danger">*</span></label>
@@ -172,26 +156,6 @@ function MemberModal({
   );
 }
 
-// ── Confirm Dialog ────────────────────────────────────────────────────
-function ConfirmDialog({ message, onConfirm, onCancel }: {
-  message: string; onConfirm: () => void; onCancel: () => void;
-}) {
-  const { tr } = useLang();
-  return (
-    <div className="modal-overlay" onClick={onCancel}>
-      <div className="modal" style={{ minWidth: 320, maxWidth: 400 }} onClick={e => e.stopPropagation()}>
-        <div className="modal-body text-center px-5 py-6">
-          <p className="text-sm">{message}</p>
-        </div>
-        <div className="modal-footer">
-          <button className="btn btn-secondary" onClick={onCancel}>{tr("cancel")}</button>
-          <button className="btn btn-danger" onClick={onConfirm}>{tr("delete")}</button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // ── Status Badge ──────────────────────────────────────────────────────
 function StatusBadge({ status }: { status: string }) {
   const cls = status === "active" ? "badge-success" : status === "inactive" ? "badge-danger" : "badge-warning";
@@ -247,8 +211,10 @@ export default function MembersPage() {
   const openAdd = () => { setEditing(null); setModalOpen(true); };
   const openEdit = (m: Member) => { setEditing(m); setModalOpen(true); };
 
+  const navigate = useNavigate();
+
   const handleDonate = (m: Member) => {
-    window.dispatchEvent(new CustomEvent("navigate-donate", { detail: m }));
+    navigate("/donations", { state: { member: m, openDonation: true } });
   };
 
   return (
@@ -308,11 +274,11 @@ export default function MembersPage() {
             )}
             {members.map((m) => (
               <tr key={m.id}>
-                <td className="text-muted" style={{ fontSize: 11 }}>{m.id}</td>
-                <td className="font-medium">{m.name}</td>
+                <td className="text-muted">{m.id}</td>
+                <td className="font-medium select-none"><Link to={`/members/${m.id}`}>{m.name}</Link></td>
                 <td className="text-muted">{m.mobile ?? "—"}</td>
                 <td className="text-muted">{m.district ?? "—"}</td>
-                <td>{m.membership_type_name ?? <span className="text-muted">—</span>}</td>
+                <td className="text-muted">{m.membership_type_name ?? <span>—</span>}</td>
                 <td><StatusBadge status={m.status} /></td>
                 <td className="text-muted">{m.last_donation ? m.last_donation.slice(0, 10) : "—"}</td>
                 <td>

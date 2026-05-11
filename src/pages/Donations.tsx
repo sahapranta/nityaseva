@@ -9,6 +9,7 @@ import BuildReceipt from "../components/BuildReceipt";
 import { writeTextFile, BaseDirectory } from "@tauri-apps/plugin-fs";
 import { appDataDir, join } from '@tauri-apps/api/path';
 import { openPath } from '@tauri-apps/plugin-opener';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 async function printReceipt(d: Donation, org: OrgSettings) {
   try {
@@ -47,17 +48,19 @@ export default function DonationsPage() {
   const [totalAmount, setTotalAmount] = useState(0);
   const [prefillMember, setPrefillMember] = useState<{ id: number; name: string; mobile: string | null } | null>(null);
   const { tr } = useLang();
+  const location = useLocation();
+  const navigate = useNavigate();
 
-  useEffect(() => {
-    const handler = (e: Event) => {
-      const member = (e as CustomEvent).detail;
-      setPrefillMember(member);
-      setEditing(null);
-      setModalOpen(true);
-    };
-    window.addEventListener("open-donation-modal", handler);
-    return () => window.removeEventListener("open-donation-modal", handler);
-  }, []);
+  useEffect(() => {  
+  if (location.state?.openDonation) {
+    const { member } = location.state;    
+    setPrefillMember(member);
+    setEditing(null);
+    setModalOpen(true);
+    
+    navigate(location.pathname, { replace: true, state: {} });
+  }
+}, [location, navigate]);
 
   const load = useCallback(async () => {
     setLoading(true);

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { useNavigate, createSearchParams } from "react-router-dom";
 
 interface Member {
   id: number;
@@ -16,11 +17,12 @@ export interface SearchAction {
   openDonation?: boolean;
 }
 
-interface Props {
-  onNavigate: (action: SearchAction) => void;
-}
+// interface Props {
+//   onNavigate: (action: SearchAction) => void;
+// }
 
-export function GlobalSearch({ onNavigate }: Props) {
+export function GlobalSearch() {
+  const onNavigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Member[]>([]);
@@ -60,12 +62,12 @@ export function GlobalSearch({ onNavigate }: Props) {
   }, [query]);
 
   const goToMember = (m: Member) => {
-    onNavigate({ page: "members", member: m });
+    onNavigate({ pathname: "members", search: createSearchParams({ member: m.id.toString() }).toString() });
     setOpen(false);
   };
 
   const goToDonation = (m: Member) => {
-    onNavigate({ page: "donations", member: m, openDonation: true });
+    onNavigate("/donations", { state: { member: m, openDonation: true } });
     setOpen(false);
   };
 
