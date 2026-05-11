@@ -7,7 +7,7 @@ import SideNav from "./components/SideNav";
 
 // Lazy pages
 const DashboardPage = lazy(() => import("./pages/Dashboard"));
-const MembersPage = lazy(() => import("./Members"));
+const MembersPage = lazy(() => import("./pages/Members"));
 const DonationsPage = lazy(() => import("./pages/Donations"));
 const ContactsPage = lazy(() => import("./pages/Contacts"));
 const LabelsPage = lazy(() => import("./pages/Labels"));
@@ -75,7 +75,7 @@ export default function App() {
   return (
     <div className="app-shell">
       <SideNav active={active} setActive={navigate} />
-      <Topbar setActive={navigate} />
+      <Topbar />
       <main className="content">
         <Suspense fallback={<PageLoader />}>
           {renderPage()}

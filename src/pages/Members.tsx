@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { useLang } from "./contexts/LangContext";
+import { useLang } from "../contexts/LangContext";
 
 // Types 
 interface Member {
