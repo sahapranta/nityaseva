@@ -26,6 +26,7 @@ export default function DonationModal({
     const [form, setForm] = useState({
         donation_type: donation?.donation_type?.toString() ?? "",
         amount: donation?.amount?.toString() ?? "",
+        slip_no: donation?.slip_no ?? "",
         paid_for: donation?.paid_for ?? "",
         note: donation?.note ?? "",
         donated_at: donation?.donated_at?.slice(0, 10) ?? new Date().toISOString().slice(0, 10),
@@ -58,7 +59,7 @@ export default function DonationModal({
                 amount: Number(form.amount),
                 paid_for: form.paid_for || null,
                 collected_by: currentUserId,
-                slip_no: null,
+                slip_no: form.slip_no || null,
                 note: form.note || null,
                 donated_at: form.donated_at || null,
             };
@@ -140,12 +141,17 @@ export default function DonationModal({
                     <div className="grid-cols-2">
                         <div className="form-group">
                             <label className="label">{tr("paid_for")}</label>
-                            <input className="input" value={form.paid_for} onChange={e => set("paid_for", e.target.value)} placeholder="e.g. May 2026" />
+                            <input className="input" value={form.paid_for} onChange={e => set("paid_for", e.target.value)} placeholder={`e.g. ${new Date().toLocaleDateString('en-BD', { month: 'long', year: 'numeric' })}`} />
                         </div>
                         <div className="form-group">
                             <label className="label">{tr("date")}</label>
                             <input className="input" type="date" value={form.donated_at} onChange={e => set("donated_at", e.target.value)} />
                         </div>
+                    </div>
+
+                    <div className="form-group">
+                        <label className="label">{tr("slip_no")}</label>
+                        <input className="input" value={form.slip_no} onChange={e => set("slip_no", e.target.value)} placeholder="e.g. SLIP-001" />
                     </div>
 
                     <div className="form-group">

@@ -6,15 +6,28 @@ import { fmt, fmtDate } from "../utils/helper";
 import type { Donation, DonationType, OrgSettings } from "../types/donations";
 import DonationModal from "../components/DonationModal";
 import BuildReceipt from "../components/BuildReceipt";
+import { writeTextFile, BaseDirectory } from "@tauri-apps/plugin-fs";
+import { appDataDir, join } from '@tauri-apps/api/path';
+import { openPath } from '@tauri-apps/plugin-opener';
 
-function printReceipt(d: Donation, org: OrgSettings) {
-  const html = BuildReceipt(d, org);
-  const win = window.open("", "_blank");
-  if (!win) return;
-  win.document.write(html);
-  win.document.close();
-  win.focus();
-  setTimeout(() => { win.print(); }, 400);
+async function printReceipt(d: Donation, org: OrgSettings) {
+  try {
+    const html = BuildReceipt(d, org);
+    const finalHtml = `
+            ${html}
+            <script>window.onload = () => { window.print(); }</script>
+        `;
+    const tempFileName = 'receipt.html';
+    await writeTextFile(tempFileName, finalHtml, {
+      baseDir: BaseDirectory.AppData
+    });
+    const appDataPath = await appDataDir();
+    const fullPath = await join(appDataPath, tempFileName);
+    await openPath(fullPath);
+  } catch (e) {
+    // console.error("Print failed:", e);
+    alert(`Print failed: ${e}`);
+  }
 }
 
 // ── Donations Page

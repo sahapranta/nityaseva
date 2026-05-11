@@ -19,7 +19,7 @@ interface MemberRow {
 }
 
 const ALL_COLUMNS: { key: keyof MemberRow; label: string }[] = [
-  { key: "id",              label: "Member ID" },
+  { key: "id",              label: "ID" },
   { key: "name",            label: "Name" },
   { key: "mobile",          label: "Mobile" },
   { key: "address",         label: "Address" }, // acts as Full Address (Address, District, PIN)
@@ -87,7 +87,7 @@ export default function MemberExportPage() {
   const { tr } = useLang();
   const [statusFilter, setStatusFilter] = useState("active");
   const [selectedCols, setSelectedCols] = useState<Set<keyof MemberRow>>(
-    new Set(["id", "name", "mobile", "address", "membership_type", "status"])
+    new Set(["id", "name", "mobile", "address"])
   );
   const [rows, setRows] = useState<MemberRow[]>([]);
   const [loaded, setLoaded] = useState(false);

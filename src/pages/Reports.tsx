@@ -1,6 +1,9 @@
 import { useEffect, useState, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useLang } from "../contexts/LangContext";
+import { writeTextFile, BaseDirectory } from "@tauri-apps/plugin-fs";
+import { appDataDir, join } from '@tauri-apps/api/path';
+import { openPath } from '@tauri-apps/plugin-opener';
 
 // ── Types ─────────────────────────────────────────────────────────────
 interface CollectionRow {
@@ -17,7 +20,7 @@ interface DonorRow {
 interface MonthlySummary { month: string; count: number; total: number; }
 
 // ── Helpers ───────────────────────────────────────────────────────────
-const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const fmt = (n: number) => "৳ " + n.toLocaleString("en-BD", { minimumFractionDigits: 2 });
 const fmtDate = (s: string) => s ? s.slice(0, 10) : "—";
 
@@ -34,7 +37,7 @@ function downloadCSV(filename: string, rows: string[][], headers: string[]) {
 }
 
 // ── Print HTML report ─────────────────────────────────────────────────
-function printReport(title: string, subtitle: string, tableHTML: string, orgName: string) {
+async function printReport(title: string, subtitle: string, tableHTML: string, orgName: string) {
   const html = `<!DOCTYPE html>
 <html><head><meta charset="utf-8"/>
 <title>${title}</title>
@@ -63,14 +66,21 @@ function printReport(title: string, subtitle: string, tableHTML: string, orgName
 </div>
 ${tableHTML}
 <div class="footer">Printed on ${new Date().toLocaleString("en-GB")} · Nityaseva</div>
+<script>window.onload = () => { window.print(); }</script>
 </body></html>`;
 
-  const win = window.open("", "_blank");
-  if (!win) return;
-  win.document.write(html);
-  win.document.close();
-  win.focus();
-  setTimeout(() => win.print(), 400);
+  try {
+    const tempFileName = 'report.html';
+    await writeTextFile(tempFileName, html, {
+      baseDir: BaseDirectory.AppData
+    });
+    const appDataPath = await appDataDir();
+    const fullPath = await join(appDataPath, tempFileName);
+    await openPath(fullPath);
+  } catch (e) {
+    // console.error("Print failed:", e);
+    alert(`Print failed: ${e}`);
+  }
 }
 
 // ── Tab bar ───────────────────────────────────────────────────────────
@@ -153,19 +163,23 @@ function CollectionReport({ orgName }: { orgName: string }) {
   return (
     <div>
       <div className="flex items-center gap-3 mb-4 flex-wrap">
-        <div className="form-group flex-row items-center gap-2">
+        <div className="form-group items-center gap-2" style={{
+          flexDirection: 'row'
+        }}>
           <label className="label whitespace-nowrap">{tr("from")}</label>
           <input className="input" type="date" value={from} onChange={e => setFrom(e.target.value)} style={{ width: 148 }} />
         </div>
-        <div className="form-group flex-row items-center gap-2">
+        <div className="form-group items-center gap-2" style={{
+          flexDirection: 'row'
+        }}>
           <label className="label whitespace-nowrap">{tr("to")}</label>
           <input className="input" type="date" value={to} onChange={e => setTo(e.target.value)} style={{ width: 148 }} />
         </div>
         {/* Quick filters */}
         {[
-          { label: tr("this_month"), fn: () => { const d = new Date(); setFrom(new Date(d.getFullYear(), d.getMonth(), 1).toISOString().slice(0,10)); setTo(d.toISOString().slice(0,10)); }},
-          { label: tr("last_month"), fn: () => { const d = new Date(); const f = new Date(d.getFullYear(), d.getMonth()-1, 1); const t2 = new Date(d.getFullYear(), d.getMonth(), 0); setFrom(f.toISOString().slice(0,10)); setTo(t2.toISOString().slice(0,10)); }},
-          { label: tr("this_year"),  fn: () => { const y = new Date().getFullYear(); setFrom(`${y}-01-01`); setTo(`${y}-12-31`); }},
+          { label: tr("this_month"), fn: () => { const d = new Date(); setFrom(new Date(d.getFullYear(), d.getMonth(), 1).toISOString().slice(0, 10)); setTo(d.toISOString().slice(0, 10)); } },
+          { label: tr("last_month"), fn: () => { const d = new Date(); const f = new Date(d.getFullYear(), d.getMonth() - 1, 1); const t2 = new Date(d.getFullYear(), d.getMonth(), 0); setFrom(f.toISOString().slice(0, 10)); setTo(t2.toISOString().slice(0, 10)); } },
+          { label: tr("this_year"), fn: () => { const y = new Date().getFullYear(); setFrom(`${y}-01-01`); setTo(`${y}-12-31`); } },
         ].map(q => (
           <button key={q.label} className="btn btn-secondary btn-sm" onClick={q.fn}>{q.label}</button>
         ))}
@@ -375,7 +389,7 @@ function DonorReport({ mode, orgName }: { mode: "top" | "frequent"; orgName: str
   const handleCSV = () => {
     downloadCSV(
       `${mode}-donors.csv`,
-      rows.map((r, i) => [String(i+1), r.name, r.mobile ?? "", String(r.donation_count), String(r.total_amount), fmtDate(r.last_donation)]),
+      rows.map((r, i) => [String(i + 1), r.name, r.mobile ?? "", String(r.donation_count), String(r.total_amount), fmtDate(r.last_donation)]),
       ["Rank", "Name", "Mobile", "Donations", "Total Amount", "Last Donation"]
     );
   };
@@ -444,7 +458,7 @@ export default function ReportsPage() {
   useEffect(() => {
     invoke<{ [k: string]: string }>("get_org_settings")
       .then(s => { if (s.name) setOrgName(s.name); })
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   return (
@@ -453,10 +467,10 @@ export default function ReportsPage() {
         <div className="page-title">{tr("reports")}</div>
       </div>
       <TabBar active={tab} onChange={setTab} />
-      {tab === "Collection"       && <CollectionReport orgName={orgName} />}
-      {tab === "Monthly Summary"  && <MonthlySummaryReport orgName={orgName} />}
-      {tab === "Top Donors"       && <DonorReport mode="top" orgName={orgName} />}
-      {tab === "Frequent Donors"  && <DonorReport mode="frequent" orgName={orgName} />}
+      {tab === "Collection" && <CollectionReport orgName={orgName} />}
+      {tab === "Monthly Summary" && <MonthlySummaryReport orgName={orgName} />}
+      {tab === "Top Donors" && <DonorReport mode="top" orgName={orgName} />}
+      {tab === "Frequent Donors" && <DonorReport mode="frequent" orgName={orgName} />}
     </div>
   );
 }
