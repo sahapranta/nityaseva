@@ -73,6 +73,7 @@ pub async fn run_migrations(conn: &Connection) -> Result<(), String> {
             status          TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active','inactive','skip')),
             skip_until      TEXT,
             last_donation   TEXT,
+            legacy_id       TEXT,
             joined_at       TEXT NOT NULL DEFAULT (datetime('now')),
             notes           TEXT,
             created_at      TEXT NOT NULL DEFAULT (datetime('now')),
@@ -99,17 +100,19 @@ pub async fn run_migrations(conn: &Connection) -> Result<(), String> {
             printed_by      INTEGER REFERENCES users(id)
         );
 
-        CREATE INDEX IF NOT EXISTS idx_members_name     ON members(name);
-        CREATE INDEX IF NOT EXISTS idx_members_mobile   ON members(mobile);
-        CREATE INDEX IF NOT EXISTS idx_members_status   ON members(status);
-        CREATE INDEX IF NOT EXISTS idx_donations_member ON donations(member_id);
-        CREATE INDEX IF NOT EXISTS idx_donations_date   ON donations(donated_at);
+        CREATE INDEX IF NOT EXISTS idx_members_name      ON members(name);
+        CREATE INDEX IF NOT EXISTS idx_members_mobile    ON members(mobile);
+        CREATE INDEX IF NOT EXISTS idx_members_legacy_id ON members(legacy_id);
+        CREATE INDEX IF NOT EXISTS idx_members_status    ON members(status);
+        CREATE INDEX IF NOT EXISTS idx_donations_member  ON donations(member_id);
+        CREATE INDEX IF NOT EXISTS idx_donations_date    ON donations(donated_at);
     ")
     .await
     .map_err(|e| e.to_string())?;
 
     // Seed donation types
-    conn.execute_batch("
+    conn.execute_batch(
+        "
         INSERT OR IGNORE INTO donation_types (id, name) VALUES
             (1, 'Monthly'),
             (2, 'Tri-Monthly'),
@@ -117,16 +120,19 @@ pub async fn run_migrations(conn: &Connection) -> Result<(), String> {
             (4, 'Yearly'),
             (5, 'Festival'),
             (6, 'Voluntary');
-    ")
+    ",
+    )
     .await
     .map_err(|e| e.to_string())?;
 
     // Seed membership types
-    conn.execute_batch("
+    conn.execute_batch(
+        "
         INSERT OR IGNORE INTO membership_types (id, name, amount, interval) VALUES
             (1, 'General', 100.0, 'yearly'),
             (2, 'Life Member', 1000.0, 'lifetime');
-    ")
+    ",
+    )
     .await
     .map_err(|e| e.to_string())?;
 

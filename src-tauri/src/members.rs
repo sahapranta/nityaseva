@@ -16,6 +16,7 @@ pub struct Member {
     pub status: String,
     pub skip_until: Option<String>,
     pub last_donation: Option<String>,
+    pub legacy_id: Option<String>,
     pub joined_at: String,
     pub notes: Option<String>,
 }
@@ -47,8 +48,9 @@ fn row_to_member(r: &libsql::Row) -> Result<Member, libsql::Error> {
         status: r.get(8)?,
         skip_until: r.get(9)?,
         last_donation: r.get(10)?,
-        joined_at: r.get(11)?,
-        notes: r.get(12)?,
+        legacy_id: r.get(11)?,
+        joined_at: r.get(12)?,
+        notes: r.get(13)?,
     })
 }
 
@@ -76,7 +78,7 @@ pub async fn list_members(
 
     let mut count_row = conn
         .query(
-            "SELECT COUNT(*) FROM members WHERE (name LIKE ?1 OR mobile LIKE ?1) AND status LIKE ?2",
+            "SELECT COUNT(*) FROM members WHERE (name LIKE ?1 OR mobile LIKE ?1 OR legacy_id LIKE ?1) AND status LIKE ?2",
             libsql::params![search_val.clone(), status_filter.clone()],
         )
         .await
@@ -92,10 +94,10 @@ pub async fn list_members(
         .query(
             "SELECT m.id, m.name, m.mobile, m.address, m.district, m.pin_code,
                     m.membership_type, mt.name as mt_name,
-                    m.status, m.skip_until, m.last_donation, m.joined_at, m.notes
+                    m.status, m.skip_until, m.last_donation, m.legacy_id, m.joined_at, m.notes
              FROM members m
              LEFT JOIN membership_types mt ON mt.id = m.membership_type
-             WHERE (m.name LIKE ?1 OR m.mobile LIKE ?1)
+             WHERE (m.name LIKE ?1 OR m.mobile LIKE ?1 OR m.legacy_id LIKE ?1)
                AND m.status LIKE ?2
              ORDER BY m.name ASC
              LIMIT ?3 OFFSET ?4",
@@ -125,7 +127,7 @@ pub async fn get_member(id: i64, db: State<'_, DbState>) -> Result<Member, Strin
         .query(
             "SELECT m.id, m.name, m.mobile, m.address, m.district, m.pin_code,
                     m.membership_type, mt.name as mt_name,
-                    m.status, m.skip_until, m.last_donation, m.joined_at, m.notes
+                    m.status, m.skip_until, m.last_donation, m.legacy_id, m.joined_at, m.notes
              FROM members m
              LEFT JOIN membership_types mt ON mt.id = m.membership_type
              WHERE m.id = ?1",
