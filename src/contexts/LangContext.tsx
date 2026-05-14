@@ -41,6 +41,13 @@ const t: Record<string, Record<Lang, string>> = {
   printPdf:    { en: "Print PDF",   bn: "প্রিন্ট পিডিএফ" },
   csv:         { en: "Export CSV",   bn: "সিএসভি" },
   save_changes:{ en: "Save Changes", bn: "পরিবর্তন সংরক্ষণ" },
+  download:    { en: "Download",    bn: "ডাউনলোড" },
+  year:          { en: "Year",        bn: "বছর" },
+  show_top:      { en: "Show top",    bn: "শীর্ষ দেখান" },
+  total_amount:  { en: "Total Amount", bn: "মোট পরিমাণ" },
+  month:         { en: "Month",       bn: "মাস" },
+  last_donation: { en: "Last Donation",   bn: "সর্বশেষ দান" },
+  bar:           { en: "Bar",         bn: "বার" },
   // Members
   name:        { en: "Name",        bn: "নাম" },
   fullName:    { en: "Full Name",   bn: "পূর্ণ নাম" },

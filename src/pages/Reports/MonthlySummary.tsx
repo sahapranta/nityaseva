@@ -1,8 +1,10 @@
 import { useEffect, useState, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { MonthlySummary, monthName, printReport, fmt } from "./utils";
+import { useLang } from "../../contexts/LangContext";
 
 export default function MonthlySummaryReport({ orgName }: { orgName: string }) {
+  const { tr } = useLang();
   const [year, setYear] = useState(new Date().getFullYear());
   const [rows, setRows] = useState<MonthlySummary[]>([]);
   const [loading, setLoading] = useState(false);
@@ -46,26 +48,26 @@ export default function MonthlySummaryReport({ orgName }: { orgName: string }) {
   return (
     <div>
       <div className="flex items-center gap-3 mb-4">
-        <div className="form-group flex-row items-center gap-2">
-          <label className="label">Year</label>
-          <select className="input w-[100px]" value={year} onChange={e => setYear(Number(e.target.value))}>
+        <div className="flex flex-row items-center gap-2">
+          <label className="label">{tr("year")}</label>
+          <select className="input w-25" value={year} onChange={e => setYear(Number(e.target.value))}>
             {Array.from({ length: 6 }, (_, i) => new Date().getFullYear() - i).map(y => (
               <option key={y} value={y}>{y}</option>
             ))}
           </select>
         </div>
         <div className="ml-auto">
-          <button className="btn btn-primary" onClick={handlePrint} disabled={grandTotal === 0}>🖨 Print PDF</button>
+          <button className="btn btn-primary" onClick={handlePrint} disabled={grandTotal === 0}>🖨 {tr("print")} PDF</button>
         </div>
       </div>
 
       <div className="table-wrap">
         <table>
           <thead>
-            <tr><th>Month</th><th>Donations</th><th className="text-right">Total Amount</th><th>Bar</th></tr>
+            <tr><th>{tr("month")}</th><th>{tr("donations")}</th><th className="text-right">{tr("total_amount")}</th><th>{tr("bar")}</th></tr>
           </thead>
           <tbody>
-            {loading && <tr><td colSpan={4} className="text-center p-6 text-text-muted">Loading…</td></tr>}
+            {loading && <tr><td colSpan={4} className="text-center p-6 text-text-muted">{tr("loading")}…</td></tr>}
             {!loading && allMonths.map(r => {
               const pct = grandTotal ? (r.total / grandTotal) * 100 : 0;
               return (
@@ -85,7 +87,7 @@ export default function MonthlySummaryReport({ orgName }: { orgName: string }) {
             })}
             {!loading && (
               <tr className="bg-saffron-50 font-bold">
-                <td className="p-3">Total {year}</td>
+                <td className="p-3">{tr("total")} {year}</td>
                 <td className="p-3">{grandCount}</td>
                 <td className="text-right text-saffron-700 p-3">{fmt(grandTotal)}</td>
                 <td />

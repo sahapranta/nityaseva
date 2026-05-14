@@ -61,13 +61,13 @@ export default function CollectionReport({ orgName }: { orgName: string }) {
   return (
     <div>
       <div className="flex items-center gap-3 mb-4 flex-wrap">
-        <div className="form-group flex-row items-center gap-2">
+        <div className="flex flex-row items-center gap-2">
           <label className="label whitespace-nowrap">{tr("from")}</label>
-          <input className="input w-[148px]" type="date" value={from} onChange={e => setFrom(e.target.value)} />
+          <input className="input w-36" type="date" value={from} onChange={e => setFrom(e.target.value)} />
         </div>
-        <div className="form-group flex-row items-center gap-2">
+        <div className="flex flex-row items-center gap-2">
           <label className="label whitespace-nowrap">{tr("to")}</label>
-          <input className="input w-[148px]" type="date" value={to} onChange={e => setTo(e.target.value)} />
+          <input className="input w-36" type="date" value={to} onChange={e => setTo(e.target.value)} />
         </div>
         {[
           { label: tr("this_month"), fn: () => { const d = new Date(); setFrom(new Date(d.getFullYear(), d.getMonth(), 1).toISOString().slice(0, 10)); setTo(d.toISOString().slice(0, 10)); } },
@@ -100,7 +100,7 @@ export default function CollectionReport({ orgName }: { orgName: string }) {
       <div className="table-wrap">
         <table>
           <thead>
-            <tr><th>#</th><th>Slip</th><th>Member</th><th>Type</th><th>Paid For</th><th>Amount</th><th>Date</th><th>Collected By</th></tr>
+            <tr><th>#</th><th>{tr("slip_no")}</th><th>{tr("member")}</th><th>{tr("type")}</th><th>{tr("paid_for")}</th><th>{tr("amount")}</th><th>{tr("date")}</th><th>{tr("collected_by")}</th></tr>
           </thead>
           <tbody>
             {loading && <tr><td colSpan={8} className="text-center p-6 text-text-muted">Loading…</td></tr>}
