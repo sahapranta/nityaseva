@@ -7,6 +7,7 @@ mod members;
 mod reports;
 mod settings;
 mod turso;
+mod pagination;
 
 use auth::*;
 use db::DbState;
@@ -146,6 +147,7 @@ pub fn run() {
             update_donation_type,
             toggle_donation_type,
             donation_summary,
+            count_donations,
             // settings
             get_org_settings,
             set_org_setting,

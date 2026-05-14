@@ -17,10 +17,6 @@ export interface SearchAction {
   openDonation?: boolean;
 }
 
-// interface Props {
-//   onNavigate: (action: SearchAction) => void;
-// }
-
 export function GlobalSearch() {
   const onNavigate = useNavigate();
   const [open, setOpen] = useState(false);

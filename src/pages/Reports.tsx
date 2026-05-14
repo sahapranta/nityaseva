@@ -4,6 +4,7 @@ import { useLang } from "../contexts/LangContext";
 import { writeTextFile, BaseDirectory } from "@tauri-apps/plugin-fs";
 import { appDataDir, join } from '@tauri-apps/api/path';
 import { openPath } from '@tauri-apps/plugin-opener';
+import { fmt, MONTHS } from '../utils/helper';
 
 // ── Types ─────────────────────────────────────────────────────────────
 interface CollectionRow {
@@ -20,8 +21,6 @@ interface DonorRow {
 interface MonthlySummary { month: string; count: number; total: number; }
 
 // ── Helpers ───────────────────────────────────────────────────────────
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-const fmt = (n: number) => "৳ " + n.toLocaleString("en-BD", { minimumFractionDigits: 2 });
 const fmtDate = (s: string) => s ? s.slice(0, 10) : "—";
 
 function monthName(mm: string) { return MONTHS[parseInt(mm, 10) - 1] ?? mm; }

@@ -10,6 +10,8 @@ import { writeTextFile, BaseDirectory } from "@tauri-apps/plugin-fs";
 import { appDataDir, join } from '@tauri-apps/api/path';
 import { openPath } from '@tauri-apps/plugin-opener';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { PagedResult, usePagination } from "../hooks/usePagination";
+import Pagination from "../components/Pagination";
 
 async function printReceipt(d: Donation, org: OrgSettings) {
   try {
@@ -26,90 +28,113 @@ async function printReceipt(d: Donation, org: OrgSettings) {
     const fullPath = await join(appDataPath, tempFileName);
     await openPath(fullPath);
   } catch (e) {
-    // console.error("Print failed:", e);
-    alert(`Print failed: ${e}`);
+    console.error("Print failed:", e);
   }
 }
+
+const PAGE_SIZE = 25;
 
 // ── Donations Page
 export default function DonationsPage() {
   const { user } = useAuth();
-  const [donations, setDonations] = useState<Donation[]>([]);
+  const { tr } = useLang();
+  const location = useLocation();
+  const navigate = useNavigate();
+
   const [donationTypes, setDonationTypes] = useState<DonationType[]>([]);
   const [orgSettings, setOrgSettings] = useState<OrgSettings>({});
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [appliedFrom, setAppliedFrom] = useState("");
+  const [appliedTo, setAppliedTo] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Donation | null>(null);
   const [deleting, setDeleting] = useState<Donation | null>(null);
-  const [totalAmount, setTotalAmount] = useState(0);
   const [prefillMember, setPrefillMember] = useState<{ id: number; name: string; mobile: string | null } | null>(null);
-  const { tr } = useLang();
-  const location = useLocation();
-  const navigate = useNavigate();
 
-  useEffect(() => {  
-  if (location.state?.openDonation) {
-    const { member } = location.state;    
-    setPrefillMember(member);
-    setEditing(null);
-    setModalOpen(true);
-    
-    navigate(location.pathname, { replace: true, state: {} });
-  }
-}, [location, navigate]);
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const [d, t, org] = await Promise.all([
-        invoke<Donation[]>("list_donations", {
-          search: search || null,
-          donationType: typeFilter ? Number(typeFilter) : null,
-          fromDate: fromDate || null,
-          toDate: toDate || null,
-          memberId: null,
-        }),
-        invoke<DonationType[]>("list_donation_types"),
-        invoke<OrgSettings>("get_org_settings"),
-      ]);
-      setDonations(d);
+  // Load static data once
+  useEffect(() => {
+    Promise.all([
+      invoke<DonationType[]>("list_donation_types"),
+      invoke<OrgSettings>("get_org_settings"),
+    ]).then(([t, org]) => {
       setDonationTypes(t);
       setOrgSettings(org);
-      setTotalAmount(d.reduce((sum, x) => sum + x.amount, 0));
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
-  }, [search, typeFilter, fromDate, toDate]);
+    });
+  }, []);
 
-  useEffect(() => { load(); }, [load]);
+  // Handle navigate-with-state for donate button
   useEffect(() => {
-    const t = setTimeout(load, 300);
-    return () => clearTimeout(t);
-  }, [search]);
+    if (location.state?.openDonation) {
+      setPrefillMember(location.state.member);
+      setEditing(null);
+      setModalOpen(true);
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location, navigate]);
+
+  // Pagination
+  const fetcher = useCallback(
+    (pg: number, size: number) =>
+      invoke<PagedResult<Donation>>("list_donations", {
+        search: search || null,
+        donationType: typeFilter ? Number(typeFilter) : null,
+        fromDate: appliedFrom || null,
+        toDate: appliedTo || null,
+        memberId: null,
+        page: pg,
+        pageSize: size,
+      }),
+    [search, typeFilter, appliedFrom, appliedTo]
+  );
+
+  const { data: donations, total, total_pages, page, loading, goTo, refresh } =
+    usePagination(fetcher, { pageSize: PAGE_SIZE });
+
+  // Reset to page 1 when search changes
+  useEffect(() => { goTo(1); }, [search, typeFilter]);
+
+  const applyDateFilter = () => {
+    setAppliedFrom(fromDate);
+    setAppliedTo(toDate);
+    goTo(1);
+  };
+
+  const clearFilters = () => {
+    setSearch(""); setTypeFilter("");
+    setFromDate(""); setToDate("");
+    setAppliedFrom(""); setAppliedTo("");
+    goTo(1);
+  };
 
   const handleDelete = async () => {
     if (!deleting) return;
     await invoke("delete_donation", { id: deleting.id });
     setDeleting(null);
-    load();
+    refresh();
   };
 
   const handleSaved = async (id: number) => {
     setModalOpen(false);
-    await load();
-    // Auto print receipt for new donations
+    refresh();
     if (!editing) {
       const d = await invoke<Donation>("get_donation", { id });
       printReceipt(d, orgSettings);
     }
     setEditing(null);
+    setPrefillMember(null);
   };
+
+  // Page-level total (current page only)
+  const pageTotal = donations.reduce((s, d) => s + d.amount, 0);
+
+  const openNewModal = () => {
+    setEditing(null);
+    setPrefillMember(null);
+    setModalOpen(true);
+  }
 
   return (
     <div className="page">
@@ -117,11 +142,10 @@ export default function DonationsPage() {
         <div>
           <div className="page-title">{tr("donations")}</div>
           <div className="page-subtitle">
-            {donations.length} record{donations.length !== 1 ? "s" : ""} &nbsp;·&nbsp;
-            {tr("total")}: <strong>৳ {totalAmount.toLocaleString("en-BD", { minimumFractionDigits: 2 })}</strong>
+            {total} record{total !== 1 ? "s" : ""}
           </div>
         </div>
-        <button className="btn btn-primary" onClick={() => { setEditing(null); setModalOpen(true); }}>
+        <button className="btn btn-primary" onClick={openNewModal}>
           + {tr("new_donation")}
         </button>
       </div>
@@ -129,18 +153,28 @@ export default function DonationsPage() {
       {/* Filters */}
       <div className="flex items-center gap-3 mb-4 flex-wrap">
         <div className="search-wrap">
-          <svg className="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}>
+          <svg className="search-icon" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" strokeWidth={1.8}>
             <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0" />
           </svg>
-          <input className="input search-input" placeholder={tr("search_member")} value={search} onChange={e => setSearch(e.target.value)} />
+          <input className="input search-input" placeholder={tr("search_member")}
+            value={search} onChange={e => setSearch(e.target.value)} />
         </div>
-        <select className="input" style={{ width: 140 }} value={typeFilter} onChange={e => setTypeFilter(e.target.value)}>
+        <select className="input" style={{ width: 140 }} value={typeFilter}
+          onChange={e => setTypeFilter(e.target.value)}>
           <option value="">{tr("all_types")}</option>
           {donationTypes.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
         </select>
-        <input className="input" type="date" value={fromDate} onChange={e => setFromDate(e.target.value)} style={{ width: 140 }} title="From date" />
-        <input className="input" type="date" value={toDate} onChange={e => setToDate(e.target.value)} style={{ width: 140 }} title="To date" />
-        <button className="btn btn-secondary btn-sm" onClick={() => { setFromDate(""); setToDate(""); setSearch(""); setTypeFilter(""); }}>{tr("clear")}</button>
+        <input className="input" type="date" value={fromDate}
+          onChange={e => setFromDate(e.target.value)} style={{ width: 140 }} />
+        <input className="input" type="date" value={toDate}
+          onChange={e => setToDate(e.target.value)} style={{ width: 140 }} />
+        <button className="btn btn-secondary btn-sm" onClick={applyDateFilter}>
+          {(appliedFrom || appliedTo) ? tr("update") : tr("apply")}
+        </button>
+        <button className="btn btn-secondary btn-sm" onClick={clearFilters}>
+          {tr("clear")}
+        </button>
       </div>
 
       {/* Table */}
@@ -178,7 +212,7 @@ export default function DonationsPage() {
                     : <span className="text-muted">—</span>}
                 </td>
                 <td className="text-muted">{d.paid_for ?? "—"}</td>
-                <td className="font-semibold" style={{ color: "var(--color-saffron-700)" }}>
+                <td className="font-semibold">
                   {fmt(d.amount)}
                 </td>
                 <td className="text-muted">{fmtDate(d.donated_at)}</td>
@@ -196,9 +230,30 @@ export default function DonationsPage() {
                 </td>
               </tr>
             ))}
+
+            {!loading && donations.length > 0 && (
+              <tr className="bg-saffron-50 font-bold">
+                <td colSpan={4} className="px-3.5 py-2.5 text-sm">
+                  Page total ({donations.length})
+                </td>
+                <td className="px-3.5 py-2.5 font-bold whitespace-nowrap text-saffron-700">
+                  {fmt(pageTotal)}
+                </td>
+                <td colSpan={3} />
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
+
+      <Pagination
+        page={page}
+        totalPages={total_pages}
+        total={total}
+        pageSize={PAGE_SIZE}
+        onChange={goTo}
+        loading={loading}
+      />
 
       {modalOpen && (
         <DonationModal
@@ -213,9 +268,9 @@ export default function DonationsPage() {
 
       {deleting && (
         <div className="modal-overlay" onClick={() => setDeleting(null)}>
-          <div className="modal" style={{ minWidth: 320, maxWidth: 400 }} onClick={e => e.stopPropagation()}>
+          <div className="modal min-w-80 max-w-md" onClick={e => e.stopPropagation()}>
             <div className="modal-body text-center px-5 py-6">
-              <p className="text-sm">Delete donation of <strong>{fmt(deleting.amount)}</strong> from <strong>{deleting.member_name}</strong>?</p>
+              <p className="text-base">Delete donation of <strong>{fmt(deleting.amount)}</strong> from <strong>{deleting.member_name}</strong>?</p>
             </div>
             <div className="modal-footer">
               <button className="btn btn-secondary" onClick={() => setDeleting(null)}>{tr("cancel")}</button>

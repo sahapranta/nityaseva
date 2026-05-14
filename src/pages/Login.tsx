@@ -25,7 +25,7 @@ export default function LoginScreen({ onLogin }: { onLogin: (user: AuthUser) => 
     };
 
     return (
-        <AuthShell title="" subtitle="Enter your 6-digit PIN to continue">
+        <AuthShell title="" subtitle="">
             <PinPad onComplete={handlePin} />
             <div className="h-6 mt-4 text-center">
                 {loading && <p className="text-xs text-slate-400 animate-pulse">Verifying...</p>}

@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useLang } from "../contexts/LangContext";
 import type { OrgSettings } from "../types/donations";
+import { fmt as UFmt } from '../utils/helper'
+import { PagedResult } from "../hooks/usePagination";
 
 interface Donation {
   id: number;
@@ -14,7 +16,7 @@ interface Donation {
 }
 
 interface MemberCounts { total: number; active: number; inactive: number; }
-const fmt = (n: number) => "৳ " + n.toLocaleString("en-BD", { minimumFractionDigits: 0 });
+const fmt = (n: number) => UFmt(n, "en-BD", 0);
 const fmtDate = (s: string) => new Date(s).toLocaleDateString("en-GB", { day: "2-digit", month: "short" });
 
 function typeBadgeClass(type: string | null) {
@@ -45,9 +47,14 @@ export default function Dashboard() {
 
     Promise.all([
       invoke<MemberCounts>("count_members"),
-      invoke<Donation[]>("list_donations", {
-        search: null, donationType: null,
-        fromDate: null, toDate: null, memberId: null,
+      invoke<PagedResult<Donation>>("list_donations", {
+        search: null,
+        donationType: null,
+        fromDate: null,
+        toDate: null,
+        memberId: null,
+        page: 1,           // Mandatory
+        pageSize: 8,       // Mandatory
       }),
       invoke<{ total: number; count: number }>("donation_summary", {
         fromDate: firstOfMonth,
@@ -56,7 +63,7 @@ export default function Dashboard() {
       invoke<OrgSettings>("get_org_settings"),
     ]).then(([counts, donations, summary, org]) => {
       setMemberCounts(counts);
-      setRecentDonations(donations.slice(0, 8));
+      setRecentDonations(donations.data);
       setMonthlyTotal(summary.total);
       setMonthlyCount(summary.count);
       if (org.name) setOrgName(org.name);

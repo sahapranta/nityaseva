@@ -1,6 +1,7 @@
 use crate::db::DbState;
 use serde::{Deserialize, Serialize};
 use tauri::State;
+use crate::pagination::{PageParams, PagedResult};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Member {
@@ -35,19 +36,19 @@ pub struct MemberInput {
 // ── Helper: read a Member from a libsql Row ───────────────────────────
 fn row_to_member(r: &libsql::Row) -> Result<Member, libsql::Error> {
     Ok(Member {
-        id:                   r.get(0)?,
-        name:                 r.get(1)?,
-        mobile:               r.get(2)?,
-        address:              r.get(3)?,
-        district:             r.get(4)?,
-        pin_code:             r.get(5)?,
-        membership_type:      r.get(6)?,
+        id: r.get(0)?,
+        name: r.get(1)?,
+        mobile: r.get(2)?,
+        address: r.get(3)?,
+        district: r.get(4)?,
+        pin_code: r.get(5)?,
+        membership_type: r.get(6)?,
         membership_type_name: r.get(7)?,
-        status:               r.get(8)?,
-        skip_until:           r.get(9)?,
-        last_donation:        r.get(10)?,
-        joined_at:            r.get(11)?,
-        notes:                r.get(12)?,
+        status: r.get(8)?,
+        skip_until: r.get(9)?,
+        last_donation: r.get(10)?,
+        joined_at: r.get(11)?,
+        notes: r.get(12)?,
     })
 }
 
@@ -57,11 +58,14 @@ fn row_to_member(r: &libsql::Row) -> Result<Member, libsql::Error> {
 pub async fn list_members(
     search: Option<String>,
     status: Option<String>,
+    page: i64,      // Add this
+    page_size: i64, // Add this
     db: State<'_, DbState>,
-) -> Result<Vec<Member>, String> {
+) -> Result<PagedResult<Member>, String> {
     let lock = db.0.lock().await;
     let inner = lock.as_ref().ok_or("No database open")?;
     let conn = &inner.conn;
+    let params = PageParams { page, page_size };
 
     let search_val = search
         .as_deref()
@@ -69,6 +73,20 @@ pub async fn list_members(
         .unwrap_or_else(|| "%".to_string());
 
     let status_filter = status.unwrap_or_else(|| "%".to_string());
+
+    let mut count_row = conn
+        .query(
+            "SELECT COUNT(*) FROM members WHERE (name LIKE ?1 OR mobile LIKE ?1) AND status LIKE ?2",
+            libsql::params![search_val.clone(), status_filter.clone()],
+        )
+        .await
+        .map_err(|e| e.to_string())?;
+
+    let total: i64 = if let Some(row) = count_row.next().await.map_err(|e| e.to_string())? {
+        row.get(0).unwrap_or(0)
+    } else {
+        0
+    };
 
     let mut rows = conn
         .query(
@@ -79,8 +97,9 @@ pub async fn list_members(
              LEFT JOIN membership_types mt ON mt.id = m.membership_type
              WHERE (m.name LIKE ?1 OR m.mobile LIKE ?1)
                AND m.status LIKE ?2
-             ORDER BY m.name ASC",
-            libsql::params![search_val, status_filter],
+             ORDER BY m.name ASC
+             LIMIT ?3 OFFSET ?4",
+            libsql::params![search_val, status_filter, params.limit(), params.offset()],
         )
         .await
         .map_err(|e| e.to_string())?;
@@ -92,7 +111,8 @@ pub async fn list_members(
         }
     }
 
-    Ok(members)
+    // 3. Wrap in PagedResult
+    Ok(PagedResult::new(members, total, &params))
 }
 
 #[tauri::command]
@@ -124,10 +144,7 @@ pub async fn get_member(id: i64, db: State<'_, DbState>) -> Result<Member, Strin
 }
 
 #[tauri::command]
-pub async fn create_member(
-    input: MemberInput,
-    db: State<'_, DbState>,
-) -> Result<i64, String> {
+pub async fn create_member(input: MemberInput, db: State<'_, DbState>) -> Result<i64, String> {
     if input.name.trim().is_empty() {
         return Err("Name is required".to_string());
     }
@@ -158,7 +175,11 @@ pub async fn create_member(
         .await
         .map_err(|e| e.to_string())?;
 
-    let row = rows.next().await.map_err(|e| e.to_string())?.ok_or("Insert failed")?;
+    let row = rows
+        .next()
+        .await
+        .map_err(|e| e.to_string())?
+        .ok_or("Insert failed")?;
     let id: i64 = row.get(0).map_err(|e| e.to_string())?;
 
     Ok(id)
@@ -245,21 +266,30 @@ pub async fn count_members(db: State<'_, DbState>) -> Result<serde_json::Value, 
     let inner = lock.as_ref().ok_or("No database open")?;
     let conn = &inner.conn;
 
-    let total   = query_count(conn, "SELECT COUNT(*) FROM members").await?;
-    let active  = query_count(conn, "SELECT COUNT(*) FROM members WHERE status = 'active'").await?;
-    let inactive = query_count(conn, "SELECT COUNT(*) FROM members WHERE status = 'inactive'").await?;
+    let total = query_count(conn, "SELECT COUNT(*) FROM members").await?;
+    let active = query_count(conn, "SELECT COUNT(*) FROM members WHERE status = 'active'").await?;
+    let inactive = query_count(
+        conn,
+        "SELECT COUNT(*) FROM members WHERE status = 'inactive'",
+    )
+    .await?;
 
     Ok(serde_json::json!({ "total": total, "active": active, "inactive": inactive }))
 }
 
 #[tauri::command]
-pub async fn list_membership_types(db: State<'_, DbState>) -> Result<Vec<serde_json::Value>, String> {
+pub async fn list_membership_types(
+    db: State<'_, DbState>,
+) -> Result<Vec<serde_json::Value>, String> {
     let lock = db.0.lock().await;
     let inner = lock.as_ref().ok_or("No database open")?;
     let conn = &inner.conn;
 
     let mut rows = conn
-        .query("SELECT id, name, amount FROM membership_types WHERE is_active = 1 ORDER BY name", ())
+        .query(
+            "SELECT id, name, amount FROM membership_types WHERE is_active = 1 ORDER BY name",
+            (),
+        )
         .await
         .map_err(|e| e.to_string())?;
 
@@ -276,13 +306,18 @@ pub async fn list_membership_types(db: State<'_, DbState>) -> Result<Vec<serde_j
 }
 
 #[tauri::command]
-pub async fn list_all_membership_types(db: State<'_, DbState>) -> Result<Vec<serde_json::Value>, String> {
+pub async fn list_all_membership_types(
+    db: State<'_, DbState>,
+) -> Result<Vec<serde_json::Value>, String> {
     let lock = db.0.lock().await;
     let inner = lock.as_ref().ok_or("No database open")?;
     let conn = &inner.conn;
 
     let mut rows = conn
-        .query("SELECT id, name, amount, interval, is_active FROM membership_types ORDER BY id", ())
+        .query(
+            "SELECT id, name, amount, interval, is_active FROM membership_types ORDER BY id",
+            (),
+        )
         .await
         .map_err(|e| e.to_string())?;
 
@@ -366,7 +401,11 @@ pub async fn toggle_membership_type(
 // Internal helper
 async fn query_count(conn: &libsql::Connection, sql: &str) -> Result<i64, String> {
     let mut rows = conn.query(sql, ()).await.map_err(|e| e.to_string())?;
-    let row = rows.next().await.map_err(|e| e.to_string())?.ok_or("No result")?;
+    let row = rows
+        .next()
+        .await
+        .map_err(|e| e.to_string())?
+        .ok_or("No result")?;
     row.get::<Option<i64>>(0)
         .map_err(|e| e.to_string())
         .map(|v| v.unwrap_or(0))

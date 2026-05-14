@@ -1,4 +1,5 @@
 use crate::db::DbState;
+use crate::pagination::{PageParams, PagedResult};
 use serde::{Deserialize, Serialize};
 use tauri::State;
 
@@ -68,8 +69,11 @@ pub async fn list_donations(
     from_date: Option<String>,
     to_date: Option<String>,
     member_id: Option<i64>,
+    page: i64,
+    page_size: i64,
     db: State<'_, DbState>,
-) -> Result<Vec<Donation>, String> {
+) -> Result<PagedResult<Donation>, String> {
+    let params = PageParams { page, page_size };
     let lock = db.0.lock().await;
     let inner = lock.as_ref().ok_or("No database open")?;
     let conn = &inner.conn;
@@ -82,20 +86,56 @@ pub async fn list_donations(
     let from = from_date.unwrap_or_else(|| "1970-01-01".to_string());
     let to = to_date.unwrap_or_else(|| "9999-12-31".to_string());
 
+    let mut count_rows = conn
+        .query(
+            "SELECT COUNT(*) FROM donations d
+            JOIN members m ON m.id = d.member_id
+                WHERE (m.name LIKE ?1 OR m.mobile LIKE ?1)
+                AND (?2 IS NULL OR d.donation_type = ?2)
+                AND (?3 IS NULL OR d.member_id = ?3)
+                AND date(d.donated_at) >= date(?4)
+                AND date(d.donated_at) <= date(?5)",
+            libsql::params![
+                search_val.clone(),
+                donation_type,
+                member_id,
+                from.clone(),
+                to.clone()
+            ],
+        )
+        .await
+        .map_err(|e| e.to_string())?;
+
+    let total = count_rows
+        .next()
+        .await
+        .map_err(|e| e.to_string())?
+        .and_then(|r| r.get::<Option<i64>>(0).ok().flatten())
+        .unwrap_or(0);
+
     let sql = format!(
         "{} WHERE (m.name LIKE ?1 OR m.mobile LIKE ?1)
            AND (?2 IS NULL OR d.donation_type = ?2)
            AND (?3 IS NULL OR d.member_id = ?3)
            AND date(d.donated_at) >= date(?4)
            AND date(d.donated_at) <= date(?5)
-         ORDER BY d.donated_at DESC",
+         ORDER BY d.donated_at DESC
+         LIMIT ?6 OFFSET ?7",
         DONATION_SELECT
     );
 
     let mut rows = conn
         .query(
             &sql,
-            libsql::params![search_val, donation_type, member_id, from, to],
+            libsql::params![
+                search_val,
+                donation_type,
+                member_id,
+                from,
+                to,
+                params.limit(),
+                params.offset()
+            ],
         )
         .await
         .map_err(|e| e.to_string())?;
@@ -107,7 +147,7 @@ pub async fn list_donations(
         }
     }
 
-    Ok(donations)
+    Ok(PagedResult::new(donations, total, &params))
 }
 
 #[tauri::command]
@@ -359,6 +399,7 @@ pub async fn toggle_donation_type(
 pub async fn donation_summary(
     from_date: Option<String>,
     to_date: Option<String>,
+    member_id: Option<i64>,
     db: State<'_, DbState>,
 ) -> Result<serde_json::Value, String> {
     let lock = db.0.lock().await;
@@ -371,9 +412,10 @@ pub async fn donation_summary(
     let mut total_rows = conn
         .query(
             "SELECT COALESCE(SUM(CAST(amount AS REAL)), 0.0)
-         FROM donations
-         WHERE date(donated_at) BETWEEN date(?1) AND date(?2)",
-            libsql::params![from.clone(), to.clone()],
+             FROM donations
+             WHERE (?1 IS NULL OR member_id = ?1)
+               AND date(donated_at) BETWEEN date(?2) AND date(?3)",
+            libsql::params![member_id, from.clone(), to.clone()], // ← add member_id
         )
         .await
         .map_err(|e| e.to_string())?;
@@ -405,4 +447,39 @@ pub async fn donation_summary(
     let count: i64 = count_row.get(0).map_err(|e| e.to_string())?;
 
     Ok(serde_json::json!({ "total": total, "count": count }))
+}
+
+#[tauri::command]
+pub async fn count_donations(
+    member_id: Option<i64>,
+    from_date: Option<String>,
+    to_date: Option<String>,
+    db: State<'_, DbState>,
+) -> Result<i64, String> {
+    let lock = db.0.lock().await;
+    let inner = lock.as_ref().ok_or("No database open")?;
+    let conn = &inner.conn;
+
+    let from = from_date.unwrap_or_else(|| "1970-01-01".to_string());
+    let to = to_date.unwrap_or_else(|| "9999-12-31".to_string());
+
+    let mut rows = conn
+        .query(
+            "SELECT COUNT(*) FROM donations d
+             WHERE (?1 IS NULL OR d.member_id = ?1)
+               AND date(d.donated_at) >= date(?2)
+               AND date(d.donated_at) <= date(?3)",
+            libsql::params![member_id, from, to],
+        )
+        .await
+        .map_err(|e| e.to_string())?;
+
+    let row = rows
+        .next()
+        .await
+        .map_err(|e| e.to_string())?
+        .ok_or("No result")?;
+    row.get::<Option<i64>>(0)
+        .map_err(|e| e.to_string())
+        .map(|v| v.unwrap_or(0))
 }

@@ -4,6 +4,9 @@ import { useLang } from "../contexts/LangContext";
 import { Link, useNavigate } from "react-router-dom";
 import ConfirmDialog from '../components/ConfirmDialog'
 import type { InputMember as Member, MembershipType } from "../types/member";
+import { usePagination, PagedResult } from "../hooks/usePagination";
+import Pagination from "../components/Pagination";
+
 // Types 
 const emptyInput = {
   name: "", mobile: "", address: "", district: "",
@@ -164,66 +167,59 @@ function StatusBadge({ status }: { status: string }) {
 
 // ── Members Page ──────────────────────────────────────────────────────
 export default function MembersPage() {
-  const [members, setMembers] = useState<Member[]>([]);
   const [membershipTypes, setMembershipTypes] = useState<MembershipType[]>([]);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
-  const [loading, setLoading] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Member | null>(null);
   const [deleting, setDeleting] = useState<Member | null>(null);
   const { tr } = useLang();
+  const navigate = useNavigate();
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const [m, t] = await Promise.all([
-        invoke<Member[]>("list_members", {
-          search: search || null,
-          status: statusFilter || null,
-        }),
-        invoke<MembershipType[]>("list_membership_types"),
-      ]);
-      setMembers(m);
-      setMembershipTypes(t);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
-  }, [search, statusFilter]);
+  // Pagination
+  const fetcher = useCallback(
+    (pg: number, size: number) =>
+      invoke<PagedResult<Member>>("list_members", {
+        search: search || null,
+        status: statusFilter || null,
+        page: pg,
+        pageSize: size,
+      }),
+    [search, statusFilter]
+  );
 
-  useEffect(() => { load(); }, [load]);
+  const { data: members, total, total_pages, page, loading, goTo, refresh } =
+    usePagination(fetcher, { pageSize: 50 });
 
-  // Debounce search
+  // Reset to page 1 when filters change
+  useEffect(() => { goTo(1); }, [search, statusFilter]);
+
+  // Load membership types once
   useEffect(() => {
-    const t = setTimeout(load, 300);
-    return () => clearTimeout(t);
-  }, [search]);
+    invoke<MembershipType[]>("list_membership_types").then(setMembershipTypes);
+  }, []);
 
+  // ── Actions ─────────────────────────────────────────────────────────
   const handleDelete = async () => {
     if (!deleting) return;
     await invoke("delete_member", { id: deleting.id });
     setDeleting(null);
-    load();
+    refresh();
   };
-
-  const openAdd = () => { setEditing(null); setModalOpen(true); };
-  const openEdit = (m: Member) => { setEditing(m); setModalOpen(true); };
-
-  const navigate = useNavigate();
 
   const handleDonate = (m: Member) => {
     navigate("/donations", { state: { member: m, openDonation: true } });
   };
 
+  const openAdd = () => { setEditing(null); setModalOpen(true); };
+  const openEdit = (m: Member) => { setEditing(m); setModalOpen(true); };
+
   return (
     <div className="page">
-      {/* Header */}
       <div className="page-header">
         <div>
           <div className="page-title">{tr("members")}</div>
-          <div className="page-subtitle">{members.length} member{members.length !== 1 ? "s" : ""} found</div>
+          <div className="page-subtitle">{total} member{total !== 1 ? "s" : ""} found</div>
         </div>
         <button className="btn btn-primary" onClick={openAdd}>+ {tr("addMember")}</button>
       </div>
@@ -241,13 +237,14 @@ export default function MembersPage() {
             onChange={e => setSearch(e.target.value)}
           />
         </div>
-        <select className="input" style={{ width: 140 }} value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+        <select className="input" style={{ width: 140 }} value={statusFilter}
+          onChange={e => setStatusFilter(e.target.value)}>
           <option value="">All Status</option>
           <option value="active">Active</option>
           <option value="inactive">Inactive</option>
           <option value="skip">Skip</option>
         </select>
-        <button className="btn btn-secondary btn-sm" onClick={load}>{tr("refresh")}</button>
+        <button className="btn btn-secondary btn-sm" onClick={refresh}>{tr("refresh")}</button>
       </div>
 
       {/* Table */}
@@ -267,26 +264,33 @@ export default function MembersPage() {
           </thead>
           <tbody>
             {loading && (
-              <tr><td colSpan={8} className="text-center  text-text-muted p-6">{tr("loading")}…</td></tr>
+              <tr><td colSpan={8} className="text-center text-muted p-6">{tr("loading")}…</td></tr>
             )}
             {!loading && members.length === 0 && (
-              <tr><td colSpan={8} className="text-center text-text-muted p-6">{tr("noMembersFound")}</td></tr>
+              <tr><td colSpan={8} className="text-center text-muted p-6">{tr("noMembersFound")}</td></tr>
             )}
-            {members.map((m) => (
+            {members.map(m => (
               <tr key={m.id}>
                 <td className="text-muted">{m.id}</td>
-                <td className="font-medium select-none"><Link to={`/members/${m.id}`}>{m.name}</Link></td>
+                <td className="font-medium select-none">
+                  <Link to={`/members/${m.id}`}>{m.name}</Link>
+                </td>
                 <td className="text-muted">{m.mobile ?? "—"}</td>
                 <td className="text-muted">{m.district ?? "—"}</td>
-                <td className="text-muted">{m.membership_type_name ?? <span>—</span>}</td>
+                <td className="text-muted">{m.membership_type_name ?? "—"}</td>
                 <td><StatusBadge status={m.status} /></td>
                 <td className="text-muted">{m.last_donation ? m.last_donation.slice(0, 10) : "—"}</td>
                 <td>
                   <div className="flex gap-1">
-                    <button
-                      className="btn btn-primary btn-sm" onClick={() => handleDonate(m)}>{tr("donate")}</button>
-                    <button className="btn btn-ghost btn-sm" onClick={() => openEdit(m)}>{tr("edit")}</button>
-                    <button className="btn btn-ghost btn-sm text-danger" onClick={() => setDeleting(m)}>{tr("delete")}</button>
+                    <button className="btn btn-primary btn-sm" onClick={() => handleDonate(m)}>
+                      {tr("donate")}
+                    </button>
+                    <button className="btn btn-ghost btn-sm" onClick={() => openEdit(m)}>
+                      {tr("edit")}
+                    </button>
+                    <button className="btn btn-ghost btn-sm text-danger" onClick={() => setDeleting(m)}>
+                      {tr("delete")}
+                    </button>
                   </div>
                 </td>
               </tr>
@@ -295,12 +299,20 @@ export default function MembersPage() {
         </table>
       </div>
 
-      {/* Modals */}
+      <Pagination
+        page={page}
+        totalPages={total_pages}
+        total={total}
+        pageSize={25}
+        onChange={goTo}
+        loading={loading}
+      />
+
       {modalOpen && (
         <MemberModal
           member={editing}
           membershipTypes={membershipTypes}
-          onSave={() => { setModalOpen(false); load(); }}
+          onSave={() => { setModalOpen(false); refresh(); }}
           onClose={() => setModalOpen(false)}
         />
       )}

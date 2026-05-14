@@ -4,10 +4,10 @@ import { useLang } from "../contexts/LangContext";
 import type { Member } from "../types/member";
 import type { Donation } from "../types/donations";
 import { useNavigate, useParams } from "react-router-dom";
-
-// ── Helpers ───────────────────────────────────────────────────────────
-const fmt = (n: number) =>
-    "৳ " + n.toLocaleString("en-BD", { minimumFractionDigits: 2 });
+import typeBadgeClass from "../components/TypeBadgeClass";
+import Pagination from "../components/Pagination";
+import { PagedResult, usePagination } from "../hooks/usePagination";
+import { fmt } from '../utils/helper';
 
 const fmtDate = (s: string) =>
     new Date(s).toLocaleDateString("en-GB", {
@@ -15,8 +15,13 @@ const fmtDate = (s: string) =>
     });
 
 const fmtDateShort = (s: string) =>
-    new Date(s).toLocaleDateString("en-GB", { day: "2-digit", month: "short" });
+    new Date(s).toLocaleDateString("en-GB", {
+        day: "2-digit", month: "short",
+    });
 
+const PAGE_SIZE = 25;
+
+// ── Status Badge ──────────────────────────────────────────────────────
 function StatusBadge({ status }: { status: string }) {
     const cls =
         status === "active" ? "badge-success" :
@@ -24,71 +29,74 @@ function StatusBadge({ status }: { status: string }) {
     return <span className={`badge ${cls}`}>{status}</span>;
 }
 
-const PAGE_SIZE = 25;
-
-// Member View Page
+// Member View
 export default function MemberView() {
     const { tr } = useLang();
+    const navigate = useNavigate();
+    const { id } = useParams();
+    const memberId = Number(id);
+
     const [member, setMember] = useState<Member | null>(null);
-    const [donations, setDonations] = useState<Donation[]>([]);
-    const [total, setTotal] = useState(0);
-    const [page, setPage] = useState(1);
-    const [loading, setLoading] = useState(true);
-    const [donLoading, setDonLoading] = useState(false);
+    const [memberLoading, setMemberLoading] = useState(true);
+    const [totalDonated, setTotalDonated] = useState(0);
     const [showFilter, setShowFilter] = useState(false);
     const [fromDate, setFromDate] = useState("");
     const [toDate, setToDate] = useState("");
     const [appliedFrom, setAppliedFrom] = useState("");
     const [appliedTo, setAppliedTo] = useState("");
-    const [totalDonated, setTotalDonated] = useState(0);
-    const navigate = useNavigate();
-    const { id } = useParams();
-    const memberId = Number(id);
-    const onBack = () => navigate("/members");
 
-    // Load member details
+    // ── Load member ───────────────────────────────────────────────────
     useEffect(() => {
+        setMemberLoading(true);
         invoke<Member>("get_member", { id: memberId })
             .then(setMember)
             .catch(console.error)
-            .finally(() => setLoading(false));
+            .finally(() => setMemberLoading(false));
     }, [memberId]);
 
-    // Load donations
-    const loadDonations = useCallback(async (pg: number, from: string, to: string) => {
-        setDonLoading(true);
-        try {
-            const all = await invoke<Donation[]>("list_donations", {
+    // ── Load summary total (all pages, filtered) ──────────────────────
+    useEffect(() => {
+        invoke<{ total: number; count: number }>("donation_summary", {
+            memberId,
+            fromDate: appliedFrom || null,
+            toDate: appliedTo || null,
+        }).then(res => setTotalDonated(res.total))
+            .catch(console.error);
+    }, [memberId, appliedFrom, appliedTo]);
+
+    // ── Paginated donations ───────────────────────────────────────────
+    const fetcher = useCallback(
+        (pg: number, size: number) =>
+            invoke<PagedResult<Donation>>("list_donations", {
                 search: null,
                 donationType: null,
-                fromDate: from || null,
-                toDate: to || null,
-                memberId,
-            });
+                fromDate: appliedFrom || null,
+                toDate: appliedTo || null,
+                memberId: memberId,
+                page: pg,
+                pageSize: size,
+            }),
+        [memberId, appliedFrom, appliedTo]
+    );
 
-            setTotal(all.length);
-            setTotalDonated(all.reduce((s, d) => s + d.amount, 0));
+    const {
+        data: donations,
+        total,
+        total_pages,
+        page,
+        loading: donLoading,
+        goTo,
+    } = usePagination(fetcher, { pageSize: PAGE_SIZE });
 
-            // Client-side pagination
-            const start = (pg - 1) * PAGE_SIZE;
-            setDonations(all.slice(start, start + PAGE_SIZE));
-        } catch (e) {
-            console.error(e);
-        } finally {
-            setDonLoading(false);
-        }
-    }, [memberId]);
+    // Reset to page 1 when filters change
+    useEffect(() => { goTo(1); }, [memberId, appliedFrom, appliedTo]);
 
-    useEffect(() => {
-        loadDonations(page, appliedFrom, appliedTo);
-    }, [page, appliedFrom, appliedTo, loadDonations]);
-
-    const totalPages = Math.ceil(total / PAGE_SIZE);
+    // ── Filter actions 
+    const isFiltered = !!(appliedFrom || appliedTo);
 
     const applyFilter = () => {
         setAppliedFrom(fromDate);
         setAppliedTo(toDate);
-        setPage(1);
         setShowFilter(false);
     };
 
@@ -97,16 +105,14 @@ export default function MemberView() {
         setToDate("");
         setAppliedFrom("");
         setAppliedTo("");
-        setPage(1);
         setShowFilter(false);
     };
 
-    const isFiltered = appliedFrom || appliedTo;
-
-    if (loading) {
+    // ── Loading / not found guards ────────────────────────────────────
+    if (memberLoading) {
         return (
-            <div className="page flex items-center justify-center" style={{ minHeight: 300 }}>
-                <span className="text-muted">{tr('loading')}…</span>
+            <div className="page flex items-center justify-center min-h-64">
+                <span className="text-muted">{tr("loading")}</span>
             </div>
         );
     }
@@ -114,19 +120,26 @@ export default function MemberView() {
     if (!member) {
         return (
             <div className="page">
-                <button className="btn btn-ghost" onClick={onBack}>← Back</button>
-                <p className="text-muted mt-4">{tr('member_not_found')}</p>
+                <button className="btn btn-ghost mb-4" onClick={() => navigate("/members")}>
+                    ← Back
+                </button>
+                <p className="text-muted">Member not found.</p>
             </div>
         );
     }
 
+    const pageTotal = donations.reduce((s, d) => s + d.amount, 0);
+
     return (
         <div className="page">
-            {/* Header */}
+            {/* ── Header ── */}
             <div className="page-header">
                 <div className="flex items-center gap-3">
-                    <button className="btn btn-ghost btn-sm" onClick={onBack}>
-                        <svg width={16} height={16} viewBox="0 0 24 24" fill="none"
+                    <button
+                        className="btn btn-ghost btn-sm"
+                        onClick={() => navigate("/members")}
+                    >
+                        <svg width={15} height={15} viewBox="0 0 24 24" fill="none"
                             stroke="currentColor" strokeWidth={2} strokeLinecap="round">
                             <path d="M19 12H5M12 5l-7 7 7 7" />
                         </svg>
@@ -134,75 +147,78 @@ export default function MemberView() {
                     </button>
                     <div>
                         <div className="page-title">{member.name}</div>
+                        <div className="page-subtitle flex items-center gap-2 mt-0.5">
+                            <StatusBadge status={member.status} />
+                            {member.membership_type_name && (
+                                <span className="text-muted">
+                                    · {member.membership_type_name}
+                                </span>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>
 
-            {/* Member info card */}
+            {/* ── Member info card ── */}
             <div className="card mb-4">
-                <div className="card-body">
-                    <div className="grid-cols-3 gap-5">
-                        {/* Column 1 */}
-                        <div className="flex flex-col gap-2">
-                            <div>
-                                <div className="text-xs text-muted font-semibold uppercase" style={{ letterSpacing: "0.5px" }}>Status</div>
-                                <div className="mt-1"><StatusBadge status={member.status} /></div>
-                            </div>
-                            <div>
-                                <div className="text-xs text-muted font-semibold uppercase" style={{ letterSpacing: "0.5px" }}>Mobile</div>
-                                <div className="font-medium text-sm mt-1">{member.mobile ?? "—"}</div>
-                            </div>
-                            <div>
-                                <div className="text-xs text-muted font-semibold uppercase" style={{ letterSpacing: "0.5px" }}>Membership</div>
-                                <div className="font-medium text-sm mt-1">{member.membership_type_name ?? "—"}</div>
-                            </div>
-                        </div>
+                <div className="card-body py-3">
+                    <div className="flex flex-wrap gap-x-8 gap-y-3 items-start">
+                        {[
+                            { label: "Mobile", value: member.mobile },
+                            { label: "Address", value: member.address },
+                            {
+                                label: "District",
+                                value: member.district
+                                    ? `${member.district}${member.pin_code ? ` — ${member.pin_code}` : ""}`
+                                    : null,
+                            },
+                            { label: "Joined", value: fmtDate(member.joined_at) },
+                        ].map(({ label, value }) =>
+                            value ? (
+                                <div key={label}>
+                                    <div className="text-xs text-muted font-semibold uppercase tracking-wide">
+                                        {label}
+                                    </div>
+                                    <div className="text-sm font-medium mt-0.5">{value}</div>
+                                </div>
+                            ) : null
+                        )}
 
-                        {/* Column 2 */}
-                        <div className="flex flex-col gap-2">
-                            <div>
-                                <div className="text-xs text-muted font-semibold uppercase" style={{ letterSpacing: "0.5px" }}>Address</div>
-                                <div className="font-medium text-sm mt-1">{member.address ?? "—"}</div>
-                            </div>
-                            <div>
-                                <div className="text-xs text-muted font-semibold uppercase" style={{ letterSpacing: "0.5px" }}>District</div>
-                                <div className="font-medium text-sm mt-1">
-                                    {member.district ?? "—"}
-                                    {member.pin_code ? ` — ${member.pin_code}` : ""}
+                        {/* Stats — pushed right */}
+                        <div className="ml-auto flex items-center gap-4">
+                            <div className="text-right">
+                                <div className="text-xs text-muted font-semibold uppercase tracking-wide">
+                                    Total Donated
+                                </div>
+                                <div className="text-lg font-bold mt-0.5 text-saffron-700">
+                                    {fmt(totalDonated)}
                                 </div>
                             </div>
-                            <div>
-                                <div className="text-xs text-muted font-semibold uppercase" style={{ letterSpacing: "0.5px" }}>Joined</div>
-                                <div className="font-medium text-sm mt-1">{fmtDate(member.joined_at)}</div>
-                            </div>
-                        </div>
-
-                        {/* Column 3 — stats */}
-                        <div className="flex flex-col gap-3">
-                            <div className="stat-card py-3 px-4">
-                                <div className="stat-label">Total Donated</div>
-                                <div className="stat-value text-xl">{fmt(totalDonated)}</div>
-                            </div>
-                            <div className="stat-card py-3 px-4">
-                                <div className="stat-label">Total Donations</div>
-                                <div className="stat-value text-xl">{total}</div>
+                            <div className="w-px h-8 bg-border-soft" />
+                            <div className="text-right">
+                                <div className="text-xs text-muted font-semibold uppercase tracking-wide">
+                                    Donations
+                                </div>
+                                <div className="text-lg font-bold mt-0.5">{total}</div>
                                 {member.last_donation && (
-                                    <div className="stat-sub">Last: {fmtDate(member.last_donation)}</div>
+                                    <div className="text-xs text-muted">
+                                        Last {fmtDateShort(member.last_donation)}
+                                    </div>
                                 )}
                             </div>
                         </div>
                     </div>
 
                     {member.notes && (
-                        <div className="mt-3 pt-3 border-t-border-soft">
-                            <div className="text-xs text-muted font-semibold uppercase mb-1" style={{ letterSpacing: "0.5px" }}>Notes</div>
-                            <div className="text-sm text-secondary">{member.notes}</div>
+                        <div className="mt-2 pt-2 border-t-border-soft">
+                            <span className="text-xs text-muted">Note: </span>
+                            <span className="text-sm text-secondary">{member.notes}</span>
                         </div>
                     )}
                 </div>
             </div>
 
-            {/* Donation history */}
+            {/* ── Donation history card ── */}
             <div className="card">
                 <div className="card-header">
                     <div className="card-title">{tr("donation_history")}</div>
@@ -214,7 +230,6 @@ export default function MemberView() {
                         )}
                         <span className="text-xs text-muted">
                             {total} donation{total !== 1 ? "s" : ""}
-                            {isFiltered && " (filtered)"}
                         </span>
                         <button
                             className={`btn btn-sm ${isFiltered ? "btn-primary" : "btn-secondary"}`}
@@ -231,38 +246,41 @@ export default function MemberView() {
 
                 {/* Filter panel */}
                 {showFilter && (
-                    <div className="bg-surface-3 flex items-end gap-3 flex-wrap border-b-border-soft py-3.5 px-4">
+                    <div className="flex items-end gap-3 flex-wrap px-4 py-3 bg-surface-3 border-b-border-soft">
                         <div className="form-group">
-                            <label className="label">{tr('from')}</label>
+                            <label className="label">{tr("from")}</label>
                             <input
                                 className="input"
                                 type="date"
+                                style={{ width: 160 }}
                                 value={fromDate}
                                 onChange={e => setFromDate(e.target.value)}
-                                style={{ width: 160 }}
                             />
                         </div>
                         <div className="form-group">
-                            <label className="label">{tr('to')}</label>
+                            <label className="label">{tr("to")}</label>
                             <input
                                 className="input"
                                 type="date"
+                                style={{ width: 160 }}
                                 value={toDate}
                                 onChange={e => setToDate(e.target.value)}
-                                style={{ width: 160 }}
                             />
                         </div>
                         <div className="flex gap-2">
                             <button className="btn btn-primary btn-sm" onClick={applyFilter}>
-                                {tr('apply')}
+                                Apply
                             </button>
                             {isFiltered && (
                                 <button className="btn btn-secondary btn-sm" onClick={clearFilter}>
-                                    {tr('clear')}
+                                    Clear
                                 </button>
                             )}
-                            <button className="btn btn-ghost btn-sm" onClick={() => setShowFilter(false)}>
-                                {tr('cancel')}
+                            <button
+                                className="btn btn-ghost btn-sm"
+                                onClick={() => setShowFilter(false)}
+                            >
+                                Cancel
                             </button>
                         </div>
                     </div>
@@ -274,51 +292,67 @@ export default function MemberView() {
                         <thead>
                             <tr>
                                 <th>#</th>
-                                <th>Date</th>
-                                <th>Type</th>
-                                <th>Paid For</th>
-                                <th>Collected By</th>
-                                <th className="text-right">Amount</th>
+                                <th>{tr("date")}</th>
+                                <th>{tr("type")}</th>
+                                <th>{tr("paidFor")}</th>
+                                <th>{tr("collectedBy")}</th>
+                                <th className="text-right">{tr("amount")}</th>
                             </tr>
                         </thead>
                         <tbody>
                             {donLoading && (
                                 <tr>
-                                    <td colSpan={6} className="text-center text-muted p-8">
-                                        {tr('loading')}…
+                                    <td colSpan={6}
+                                        className="text-center text-muted"
+                                        style={{ padding: 32 }}>
+                                        {tr("loading")}…
                                     </td>
                                 </tr>
                             )}
+
                             {!donLoading && donations.length === 0 && (
                                 <tr>
-                                    <td colSpan={6} className="text-center text-muted p-8">
-                                        {isFiltered ? "No donations in this date range" : "No donations recorded"}
+                                    <td colSpan={6}
+                                        className="text-center text-muted"
+                                        style={{ padding: 32 }}>
+                                        {isFiltered
+                                            ? "No donations in this date range"
+                                            : "No donations recorded"}
                                     </td>
                                 </tr>
                             )}
-                            {!donLoading && donations.map((d, index) => (
+
+                            {!donLoading && donations.map((d, i) => (
                                 <tr key={d.id}>
-                                    <td className="text-muted" style={{ fontSize: 11 }}>
-                                        {index + 1 + (page - 1) * PAGE_SIZE}
+                                    <td className="text-muted text-xs">
+                                        {(page - 1) * PAGE_SIZE + i + 1}
                                     </td>
-                                    <td className="text-muted">{fmtDateShort(d.donated_at)}</td>
-                                    <td className="text-muted">{d.donation_type_name || <span>—</span>}</td>
+                                    <td className="text-muted">
+                                        {fmtDateShort(d.donated_at)}
+                                    </td>
+                                    <td>
+                                        {d.donation_type_name
+                                            ? <span className={`badge ${typeBadgeClass(d.donation_type_name)}`}>
+                                                {d.donation_type_name}
+                                            </span>
+                                            : <span className="text-muted">—</span>}
+                                    </td>
                                     <td className="text-muted">{d.paid_for ?? "—"}</td>
                                     <td className="text-muted">{d.collected_by_name ?? "—"}</td>
-                                    <td className="text-right font-semibold whitespace-nowrap">
+                                    <td className="text-right font-semibold whitespace-nowrap text-saffron-700">
                                         {fmt(d.amount)}
                                     </td>
                                 </tr>
                             ))}
 
-                            {/* Total row */}
+                            {/* Page total row */}
                             {!donLoading && donations.length > 0 && (
                                 <tr className="bg-saffron-50 font-bold">
-                                    <td colSpan={5} style={{ padding: "10px 14px", fontSize: 13 }}>
-                                        Page total ({donations.length} donation{donations.length !== 1 ? "s" : ""})
+                                    <td colSpan={5} className="text-sm px-3.5 py-2.5">
+                                        Page total ({donations.length})
                                     </td>
-                                    <td className="text-right bg-saffron-100 whitespace-nowrap px-3.5 py-2.5">
-                                        {fmt(donations.reduce((s, d) => s + d.amount, 0))}
+                                    <td className="text-right whitespace-nowrap text-saffron-700 px-3.5 py-2.5">                                        
+                                        {fmt(pageTotal)}
                                     </td>
                                 </tr>
                             )}
@@ -327,57 +361,14 @@ export default function MemberView() {
                 </div>
 
                 {/* Pagination */}
-                {totalPages > 1 && (
-                    <div className="flex items-center justify-between px-4 py-3 border-t-border-soft">
-                        <span className="text-xs text-muted">
-                            Page {page} of {totalPages} · {total} total
-                        </span>
-                        <div className="flex gap-2">
-                            <button
-                                className="btn btn-secondary btn-sm"
-                                onClick={() => setPage(1)}
-                                disabled={page === 1}
-                            >«</button>
-                            <button
-                                className="btn btn-secondary btn-sm"
-                                onClick={() => setPage(p => Math.max(1, p - 1))}
-                                disabled={page === 1}
-                            >‹ Prev</button>
-                            {/* Page numbers */}
-                            {Array.from({ length: totalPages }, (_, i) => i + 1)
-                                .filter(p => p === 1 || p === totalPages || Math.abs(p - page) <= 1)
-                                .reduce<(number | "...")[]>((acc, p, i, arr) => {
-                                    if (i > 0 && (p as number) - (arr[i - 1] as number) > 1) acc.push("...");
-                                    acc.push(p);
-                                    return acc;
-                                }, [])
-                                .map((p, i) =>
-                                    p === "..." ? (
-                                        <span key={`ellipsis-${i}`} className="text-muted"
-                                            style={{ padding: "5px 4px", fontSize: 13 }}>…</span>
-                                    ) : (
-                                        <button
-                                            key={p}
-                                            className={`btn btn-sm ${page === p ? "btn-primary" : "btn-secondary"}`}
-                                            onClick={() => setPage(p as number)}
-                                            style={{ minWidth: 32 }}
-                                        >{p}</button>
-                                    )
-                                )
-                            }
-                            <button
-                                className="btn btn-secondary btn-sm"
-                                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                                disabled={page === totalPages}
-                            >Next ›</button>
-                            <button
-                                className="btn btn-secondary btn-sm"
-                                onClick={() => setPage(totalPages)}
-                                disabled={page === totalPages}
-                            >»</button>
-                        </div>
-                    </div>
-                )}
+                <Pagination
+                    page={page}
+                    totalPages={total_pages}
+                    total={total}
+                    pageSize={PAGE_SIZE}
+                    onChange={goTo}
+                    loading={donLoading}
+                />
             </div>
         </div>
     );
