@@ -50,7 +50,7 @@ export default function ContactsPage() {
     [search, statusFilter]
   );
 
-  const { data: members, total, total_pages, page, loading, goTo, refresh } =
+  const { data: members, total, total_pages, page, loading, goTo } =
     usePagination(fetcher, { pageSize: 50 });
 
   useEffect(() => { goTo(1); }, [search, statusFilter]);
