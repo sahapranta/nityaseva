@@ -4,6 +4,7 @@ import { writeTextFile, BaseDirectory } from '@tauri-apps/plugin-fs';
 import { appDataDir, join } from '@tauri-apps/api/path';
 import { openPath } from '@tauri-apps/plugin-opener';
 import { useLang } from "../contexts/LangContext";
+import type { PagedResult } from "../hooks/usePagination";
 
 interface Member {
     id: number;
@@ -142,14 +143,19 @@ export default function LabelsPage() {
     const load = useCallback(async () => {
         setLoading(true);
         try {
-            const [m, o] = await Promise.all([
-                invoke<Member[]>("list_members", { search: search || null, status: "active" }),
+            const [result, o] = await Promise.all([
+                invoke<PagedResult<Member>>("list_members", {
+                    search: search || null,
+                    status: "active",
+                    page: 1,
+                    pageSize: 1000,
+                }),
                 invoke<OrgSettings>("get_org_settings"),
             ]);
-            setMembers(m);
+            setMembers(result.data);
             setOrg(o);
             // Select all by default
-            setSelected(new Set(m.map(x => x.id)));
+            setSelected(new Set(result.data.map(x => x.id)));
         } catch (e) {
             console.error(e);
         } finally {
@@ -246,14 +252,14 @@ export default function LabelsPage() {
             </div>
 
             {/* Sender preview card */}
-            <div className="card mb-4" style={{ maxWidth: 400 }}>
+            <div className="card mb-4 max-w-sm">
                 <div className="card-header"><div className="card-title">Sender (Left side of label)</div></div>
-                <div className="card-body" style={{ fontSize: 13, lineHeight: 1.8, color: "var(--color-text-secondary)" }}>
-                    <strong style={{ color: "var(--color-text-primary)" }}>{org.name ?? "— Set in Settings →"}</strong><br />
+                <div className="card-body text-xs leading-relaxed text-text-secondary">
+                    <strong className="text-text-primary">{org.name ?? "— Set in Settings →"}</strong><br />
                     {org.address && <>{org.address}<br /></>}
                     {org.mobile && <>Mobile: {org.mobile}<br /></>}
                     {!org.name && (
-                        <span style={{ color: "var(--color-warning)", fontSize: 12 }}>
+                        <span className="text-warning text-xs block">
                             ⚠ Set organisation details in Settings first
                         </span>
                     )}
@@ -283,7 +289,7 @@ export default function LabelsPage() {
                 <table>
                     <thead>
                         <tr>
-                            <th style={{ width: 40 }}>
+                            <th className="w-10">
                                 <input
                                     type="checkbox"
                                     checked={selected.size === members.length && members.length > 0}
@@ -308,7 +314,7 @@ export default function LabelsPage() {
                             <tr
                                 key={m.id}
                                 onClick={() => toggleOne(m.id)}
-                                style={{ cursor: "pointer", opacity: selected.has(m.id) ? 1 : 0.45 }}
+                                className={`cursor-pointer transition-opacity ${selected.has(m.id) ? "opacity-100" : "opacity-45"}`}
                             >
                                 <td onClick={e => e.stopPropagation()}>
                                     <input type="checkbox" checked={selected.has(m.id)} onChange={() => toggleOne(m.id)} />
@@ -328,48 +334,38 @@ export default function LabelsPage() {
             {previewing && (
                 <div className="modal-overlay" onClick={() => setPreviewing(false)}>
                     <div
-                        className="modal"
-                        style={{ maxWidth: 680, width: "90vw", maxHeight: "85vh", display: "flex", flexDirection: "column" }}
+                        className="modal w-[90vw] max-w-2xl max-h-[85vh] flex flex-col"
                         onClick={e => e.stopPropagation()}
                     >
                         <div className="modal-header">
                             <div className="modal-title">Label Preview — first label</div>
                             <button className="btn btn-ghost btn-icon" onClick={() => setPreviewing(false)}>✕</button>
                         </div>
-                        <div style={{ flex: 1, overflow: "auto", padding: 16 }}>
+                        <div className="flex-1 overflow-auto p-4">
                             {selectedMembers[0] && (
-                                <div style={{
-                                    display: "flex", border: "1px solid var(--color-border)",
-                                    borderRadius: "var(--radius-md)", overflow: "hidden", minHeight: 220,
-                                }}>
+                                <div className="flex border border-border rounded-md overflow-hidden min-h-56">
                                     {/* Sender */}
-                                    <div style={{
-                                        flex: 1, padding: "24px 20px", background: "var(--color-surface-3)",
-                                        display: "flex", flexDirection: "column", justifyContent: "center", gap: 4,
-                                    }}>
-                                        <div style={{ fontSize: 10, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5, color: "var(--color-text-muted)", marginBottom: 8 }}>
+                                    <div className="flex-1 p-6 bg-surface-3 flex flex-col justify-center gap-1">
+                                        <div className="text-xs font-semibold uppercase tracking-wide text-text-muted mb-2">
                                             প্রেরক / Sender
                                         </div>
-                                        <div style={{ borderLeft: "3px solid var(--color-saffron-600)", paddingLeft: 10, lineHeight: 1.8, fontSize: 13, color: "var(--color-text-secondary)" }}>
-                                            <strong style={{ color: "var(--color-text-primary)" }}>{org.name}</strong><br />
+                                        <div className="border-l-[3px] border-saffron-600 pl-2.5 leading-relaxed text-xs text-text-secondary">
+                                            <strong className="text-text-primary">{org.name}</strong><br />
                                             {org.address && <>{org.address}<br /></>}
                                             {org.mobile && <>Mobile: {org.mobile}</>}
                                         </div>
                                     </div>
 
                                     {/* Divider */}
-                                    <div style={{ width: 1, background: "var(--color-border)", margin: "16px 0" }} />
+                                    <div className="w-px bg-border my-4" />
 
                                     {/* Receiver */}
-                                    <div style={{
-                                        flex: 1, padding: "24px 20px",
-                                        display: "flex", flexDirection: "column", justifyContent: "center", gap: 4,
-                                    }}>
-                                        <div style={{ fontSize: 10, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5, color: "var(--color-text-muted)", marginBottom: 8 }}>
+                                    <div className="flex-1 p-6 flex flex-col justify-center gap-1">
+                                        <div className="text-xs font-semibold uppercase tracking-wide text-text-muted mb-2">
                                             প্রাপক / Receiver
                                         </div>
-                                        <div style={{ lineHeight: 2, fontSize: 14 }}>
-                                            <strong style={{ fontSize: 16, display: "block" }}>{selectedMembers[0].name}</strong>
+                                        <div className="leading-loose text-sm">
+                                            <strong className="text-base block">{selectedMembers[0].name}</strong>
                                             {selectedMembers[0].address && <>{selectedMembers[0].address}<br /></>}
                                             {selectedMembers[0].district && <>{selectedMembers[0].district}<br /></>}
                                             {selectedMembers[0].pin_code && <>PIN: {selectedMembers[0].pin_code}<br /></>}
@@ -378,7 +374,7 @@ export default function LabelsPage() {
                                     </div>
                                 </div>
                             )}
-                            <p style={{ fontSize: 12, color: "var(--color-text-muted)", marginTop: 12, textAlign: "center" }}>
+                            <p className="text-xs text-text-muted mt-3 text-center">
                                 Each label prints on a full A4 page. {selectedMembers.length} page{selectedMembers.length !== 1 ? "s" : ""} total.
                             </p>
                         </div>

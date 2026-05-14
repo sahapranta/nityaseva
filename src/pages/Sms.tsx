@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useLang } from "../contexts/LangContext";
+import type { PagedResult } from "../hooks/usePagination";
 
 interface Member {
   id: number;
@@ -45,13 +46,15 @@ export default function SmsPage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const m = await invoke<Member[]>("list_members", {
+      const result = await invoke<PagedResult<Member>>("list_members", {
         search: search || null,
         status: statusFilter || null,
+        page: 1,
+        pageSize: 1000,
       });
-      setMembers(m);
+      setMembers(result.data);
       // keep only members with mobile
-      const withMobile = new Set(m.filter(x => x.mobile).map(x => x.id));
+      const withMobile = new Set(result.data.filter(x => x.mobile).map(x => x.id));
       setSelected(withMobile);
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
@@ -144,7 +147,7 @@ export default function SmsPage() {
             </div>
           </div>
           <div className="form-group">
-            <label className="label">Message text — use <code style={{ background: "var(--color-surface-3)", padding: "1px 4px", borderRadius: 3 }}>{"{name}"}</code> for member name</label>
+            <label className="label">Message text — use <code className="bg-surface-3 px-1 rounded text-xs">{"{name}"}</code> for member name</label>
             <textarea
               className="input"
               rows={3}
@@ -152,7 +155,7 @@ export default function SmsPage() {
               onChange={e => { setMessage(e.target.value); setTemplateIdx(3); }}
               placeholder="Type your message here…"
             />
-            <div style={{ fontSize: 11, color: "var(--color-text-muted)", marginTop: 4 }}>
+            <div className="text-xs text-text-muted mt-1">
               {message.length} characters
             </div>
           </div>
@@ -172,7 +175,7 @@ export default function SmsPage() {
             onChange={e => setSearch(e.target.value)}
           />
         </div>
-        <select className="input" style={{ width: 140 }} value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+        <select className="input w-[140px]" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
           <option value="">All Status</option>
           <option value="active">Active</option>
           <option value="inactive">Inactive</option>
@@ -187,7 +190,7 @@ export default function SmsPage() {
         <table>
           <thead>
             <tr>
-              <th style={{ width: 40 }}>
+              <th className="w-10">
                 <input
                   type="checkbox"
                   checked={selected.size === membersWithMobile && membersWithMobile > 0}
@@ -203,10 +206,10 @@ export default function SmsPage() {
           </thead>
           <tbody>
             {loading && (
-              <tr><td colSpan={6} style={{ textAlign: "center", padding: 24, color: "var(--color-text-muted)" }}>Loading…</td></tr>
+              <tr><td colSpan={6} className="text-center p-6 text-text-muted">Loading…</td></tr>
             )}
             {!loading && members.length === 0 && (
-              <tr><td colSpan={6} style={{ textAlign: "center", padding: 24, color: "var(--color-text-muted)" }}>No members found</td></tr>
+              <tr><td colSpan={6} className="text-center p-6 text-text-muted">No members found</td></tr>
             )}
             {members.map(m => {
               const hasMobile = !!m.mobile;
@@ -215,7 +218,7 @@ export default function SmsPage() {
                 <tr
                   key={m.id}
                   onClick={() => hasMobile && toggleOne(m.id)}
-                  style={{ cursor: hasMobile ? "pointer" : "not-allowed", opacity: hasMobile ? (isSelected ? 1 : 0.4) : 0.3 }}
+                  className={`${hasMobile ? "cursor-pointer" : "cursor-not-allowed"} transition-opacity ${hasMobile ? (isSelected ? "opacity-100" : "opacity-40") : "opacity-30"}`}
                 >
                   <td onClick={e => e.stopPropagation()}>
                     <input
@@ -228,7 +231,7 @@ export default function SmsPage() {
                   <td className="font-medium">{m.name}</td>
                   <td>
                     {m.mobile
-                      ? <span style={{ fontFamily: "monospace" }}>{m.mobile}</span>
+                      ? <span className="font-mono">{m.mobile}</span>
                       : <span className="badge badge-neutral">No mobile</span>}
                   </td>
                   <td>
@@ -248,7 +251,7 @@ export default function SmsPage() {
       {/* Preview modal */}
       {preview && (
         <div className="modal-overlay" onClick={() => setPreview(null)}>
-          <div className="modal" style={{ maxWidth: 420 }} onClick={e => e.stopPropagation()}>
+          <div className="modal max-w-sm" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <div className="modal-title">Message Preview</div>
               <button className="btn btn-ghost btn-icon" onClick={() => setPreview(null)}>✕</button>
@@ -256,17 +259,15 @@ export default function SmsPage() {
             <div className="modal-body flex flex-col gap-3">
               <div className="form-group">
                 <label className="label">To</label>
-                <div style={{ fontSize: 13 }}>{preview.name} — <span className="font-mono">{preview.mobile}</span></div>
+                <div className="text-sm">{preview.name} — <span className="font-mono">{preview.mobile}</span></div>
               </div>
               <div className="form-group">
                 <label className="label">Message</label>
-                <div style={{
-                  background: "var(--color-surface-3)", border: "1px solid var(--color-border)",
-                  borderRadius: "var(--radius-md)", padding: "10px 12px",
-                  fontSize: 13, lineHeight: 1.7, whiteSpace: "pre-wrap",
-                }}>{preview.text}</div>
+                <div className="bg-surface-3 border border-border rounded-md p-3 text-sm leading-relaxed whitespace-pre-wrap">
+                  {preview.text}
+                </div>
               </div>
-              <p className="text-[11px] text-text-muted">
+              <p className="text-xs text-text-muted">
                 {preview.text.length} characters · {selectedMembers.length} total recipients
               </p>
             </div>
