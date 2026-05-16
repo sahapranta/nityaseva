@@ -7,7 +7,7 @@ const MonthlySummaryReport = lazy(() => import("./MonthlySummary"));
 const TopDonorsReport = lazy(() => import("./TopDonors"));
 const FrequentDonorsReport = lazy(() => import("./FrequentDonors"));
 
-const TABS = ["Collection", "Monthly Summary", "Top Donors", "Frequent Donors"] as const;
+const TABS = ["Monthly Summary", "Collection", "Top Donors", "Frequent Donors"] as const;
 type Tab = typeof TABS[number];
 
 function TabBar({ active, onChange }: { active: Tab; onChange: (t: Tab) => void }) {
@@ -35,7 +35,7 @@ function Loading() {
 }
 
 export default function ReportsPage() {
-  const [tab, setTab] = useState<Tab>("Collection");
+  const [tab, setTab] = useState<Tab>("Monthly Summary");
   const [orgName, setOrgName] = useState("Nityaseva");
   const { tr } = useLang();
 
@@ -52,8 +52,8 @@ export default function ReportsPage() {
       </div>
       <TabBar active={tab} onChange={setTab} />
       <Suspense fallback={<Loading />}>
-        {tab === "Collection" && <CollectionReport orgName={orgName} />}
         {tab === "Monthly Summary" && <MonthlySummaryReport orgName={orgName} />}
+        {tab === "Collection" && <CollectionReport orgName={orgName} />}
         {tab === "Top Donors" && <TopDonorsReport orgName={orgName} />}
         {tab === "Frequent Donors" && <FrequentDonorsReport orgName={orgName} />}
       </Suspense>
