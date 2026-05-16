@@ -139,6 +139,7 @@ pub fn run() {
             list_donations,
             get_donation,
             create_donation,
+            create_donations_batch,
             update_donation,
             delete_donation,
             list_donation_types,

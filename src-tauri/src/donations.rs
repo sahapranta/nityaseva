@@ -33,6 +33,18 @@ pub struct DonationInput {
     pub donated_at: Option<String>,
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+pub struct DonationInputBatch {
+    pub member_id: i64,
+    pub donation_type: Option<i64>,
+    pub amount: f64,
+    pub paid_for_list: Vec<String>,
+    pub collected_by: Option<i64>,
+    pub slip_no: Option<String>,
+    pub note: Option<String>,
+    pub donated_at: Option<String>,
+}
+
 fn row_to_donation(r: &libsql::Row) -> Result<Donation, libsql::Error> {
     Ok(Donation {
         id: r.get(0)?,
@@ -233,6 +245,80 @@ pub async fn create_donation(input: DonationInput, db: State<'_, DbState>) -> Re
     .map_err(|e| e.to_string())?;
 
     Ok(new_id)
+}
+
+#[tauri::command]
+pub async fn create_donations_batch(
+    input: DonationInputBatch,
+    db: State<'_, DbState>,
+) -> Result<i64, String> {
+    if input.amount <= 0.0 {
+        return Err("Amount must be greater than zero".to_string());
+    }
+
+    if input.paid_for_list.is_empty() {
+        return Err("At least one month/date must be provided".to_string());
+    }
+
+    let lock = db.0.lock().await;
+    let inner = lock.as_ref().ok_or("No database open")?;
+    let conn = &inner.conn;
+
+    let date_prefix = chrono::Local::now().format("%Y%m%d").to_string();
+    let mut first_id: i64 = 0;
+
+    for (idx, paid_for) in input.paid_for_list.iter().enumerate() {
+        conn.execute(
+            "INSERT INTO donations (member_id, donation_type, amount, paid_for, collected_by, slip_no, note, donated_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, COALESCE(?8, datetime('now')))",
+            libsql::params![
+                input.member_id,
+                input.donation_type,
+                input.amount,
+                paid_for.clone(),
+                input.collected_by,
+                input.slip_no.clone(),
+                input.note.clone(),
+                input.donated_at.clone(),
+            ],
+        )
+        .await
+        .map_err(|e| e.to_string())?;
+
+        let mut id_rows = conn
+            .query("SELECT last_insert_rowid()", ())
+            .await
+            .map_err(|e| e.to_string())?;
+        let id_row = id_rows
+            .next()
+            .await
+            .map_err(|e| e.to_string())?
+            .ok_or("Insert failed")?;
+        let new_id: i64 = id_row.get(0).map_err(|e| e.to_string())?;
+
+        if idx == 0 {
+            first_id = new_id;
+        }
+
+        if input.slip_no.is_none() {
+            let slip = format!("{}-{}", date_prefix, new_id);
+            conn.execute(
+                "UPDATE donations SET slip_no = ?1 WHERE id = ?2",
+                libsql::params![slip, new_id],
+            )
+            .await
+            .map_err(|e| e.to_string())?;
+        }
+    }
+
+    conn.execute(
+        "UPDATE members SET last_donation = COALESCE(?1, datetime('now')), updated_at = datetime('now') WHERE id = ?2",
+        libsql::params![input.donated_at, input.member_id],
+    )
+    .await
+    .map_err(|e| e.to_string())?;
+
+    Ok(first_id)
 }
 
 #[tauri::command]

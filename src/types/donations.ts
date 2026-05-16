@@ -18,3 +18,25 @@ export interface Donation {
 export interface DonationType { id: number; name: string; }
 export interface Member { id: number; name: string; mobile: string | null; }
 export interface OrgSettings { [key: string]: string; }
+
+export interface DonationInput {
+    member_id: number;
+    donation_type: number | null;
+    amount: number;
+    paid_for: string | null;
+    collected_by: number;
+    slip_no: string | null;
+    note: string | null;
+    donated_at: string | null;
+}
+
+export interface DonationInputBatch {
+    member_id: number;
+    donation_type: number | null;
+    amount: number;
+    paid_for_list: string[];
+    collected_by: number;
+    slip_no: string | null;
+    note: string | null;
+    donated_at: string | null;
+}
