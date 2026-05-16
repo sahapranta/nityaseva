@@ -189,7 +189,7 @@ export default function MembersPage() {
   );
 
   const { data: members, total, total_pages, page, loading, goTo, refresh } =
-    usePagination(fetcher, { pageSize: 50 });
+    usePagination(fetcher, { pageSize: 25 });
 
   // Reset to page 1 when filters change
   useEffect(() => { goTo(1); }, [search, statusFilter]);

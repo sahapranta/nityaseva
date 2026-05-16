@@ -15,11 +15,13 @@ ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   </React.StrictMode>,
 );
 
-// ── Splash screen coordination ────────────────────────────────────────
+// Splash screen coordination
 async function setup() {
   console.log("Frontend setup starting…");
   try {
-    await invoke("set_complete", { task: "frontend" });
+    setTimeout(async () => {
+      await invoke("set_complete", { task: "frontend" });
+    }, 1500); // Simulate some setup time
     console.log("Frontend marked complete");
   } catch (e) {
     console.error("Invoke failed:", e);

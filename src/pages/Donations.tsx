@@ -220,10 +220,10 @@ export default function DonationsPage() {
                 <td>
                   <div className="flex gap-1">
                     <button
-                      className="btn btn-ghost btn-sm"
+                      className="btn btn-secondary btn-sm"
                       title={tr("print_receipt")}
                       onClick={() => printReceipt(d, orgSettings)}
-                    >🖨</button>
+                    >{tr('print')}</button>
                     <button className="btn btn-ghost btn-sm" onClick={() => { setEditing(d); setModalOpen(true); }}>{tr("edit")}</button>
                     <button className="btn btn-ghost btn-sm text-danger" onClick={() => setDeleting(d)}>{tr("delete")}</button>
                   </div>
