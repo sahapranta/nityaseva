@@ -78,7 +78,9 @@ pub async fn list_members(
 
     let mut count_row = conn
         .query(
-            "SELECT COUNT(*) FROM members WHERE (name LIKE ?1 OR mobile LIKE ?1 OR legacy_id LIKE ?1) AND status LIKE ?2",
+            "SELECT COUNT(*) FROM members 
+             WHERE (?1 IS NULL OR name LIKE ?1 OR mobile LIKE ?1 OR legacy_id LIKE ?1) 
+               AND status LIKE ?2",
             libsql::params![search_val.clone(), status_filter.clone()],
         )
         .await
@@ -97,9 +99,16 @@ pub async fn list_members(
                     m.status, m.skip_until, m.last_donation, m.legacy_id, m.joined_at, m.notes
              FROM members m
              LEFT JOIN membership_types mt ON mt.id = m.membership_type
-             WHERE (m.name LIKE ?1 OR m.mobile LIKE ?1 OR m.legacy_id LIKE ?1)
+             WHERE (?1 IS NULL OR m.name LIKE ?1 OR m.mobile LIKE ?1 OR m.legacy_id LIKE ?1)
                AND m.status LIKE ?2
-             ORDER BY m.name ASC
+             ORDER BY 
+                CASE 
+                    WHEN m.legacy_id LIKE ?1 THEN 1
+                    WHEN m.name LIKE ?1 THEN 2
+                    ELSE 3
+                END ASC,
+                m.status ASC,
+                m.id DESC
              LIMIT ?3 OFFSET ?4",
             libsql::params![search_val, status_filter, params.limit(), params.offset()],
         )

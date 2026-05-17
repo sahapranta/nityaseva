@@ -90,7 +90,8 @@ pub async fn run_migrations(conn: &Connection) -> Result<(), String> {
             slip_no         TEXT,
             note            TEXT,
             donated_at      TEXT NOT NULL DEFAULT (datetime('now')),
-            created_at      TEXT NOT NULL DEFAULT (datetime('now'))
+            created_at      TEXT NOT NULL DEFAULT (datetime('now')),
+            paid_for_period TEXT
         );
 
         CREATE TABLE IF NOT EXISTS receipts (
@@ -106,6 +107,7 @@ pub async fn run_migrations(conn: &Connection) -> Result<(), String> {
         CREATE INDEX IF NOT EXISTS idx_members_status    ON members(status);
         CREATE INDEX IF NOT EXISTS idx_donations_member  ON donations(member_id);
         CREATE INDEX IF NOT EXISTS idx_donations_date    ON donations(donated_at);
+        CREATE INDEX IF NOT EXISTS idx_donations_paid_for_period ON donations(paid_for_period);
     ")
     .await
     .map_err(|e| e.to_string())?;

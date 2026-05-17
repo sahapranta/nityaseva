@@ -26,7 +26,7 @@ pub struct DonationInput {
     pub member_id: i64,
     pub donation_type: Option<i64>,
     pub amount: f64,
-    pub paid_for: Option<String>,
+    pub paid_for: Option<String>,    
     pub collected_by: Option<i64>,
     pub slip_no: Option<String>,
     pub note: Option<String>,
@@ -90,25 +90,25 @@ pub async fn list_donations(
     let inner = lock.as_ref().ok_or("No database open")?;
     let conn = &inner.conn;
 
-    let search_val = search
-        .as_deref()
-        .map(|s| format!("%{}%", s))
-        .unwrap_or_else(|| "%".to_string());
-
+    // Only create search pattern if a search term actually exists
+    let search_pattern = search.map(|s| format!("%{}%", s));
+    
+    // Provide default fallback date strings instead of wrapping in date() inside SQL
     let from = from_date.unwrap_or_else(|| "1970-01-01".to_string());
     let to = to_date.unwrap_or_else(|| "9999-12-31".to_string());
 
+    // 1. Optimized Count Query
     let mut count_rows = conn
         .query(
             "SELECT COUNT(*) FROM donations d
-            JOIN members m ON m.id = d.member_id
-                WHERE (m.name LIKE ?1 OR m.mobile LIKE ?1)
-                AND (?2 IS NULL OR d.donation_type = ?2)
-                AND (?3 IS NULL OR d.member_id = ?3)
-                AND date(d.donated_at) >= date(?4)
-                AND date(d.donated_at) <= date(?5)",
+             JOIN members m ON m.id = d.member_id
+             WHERE (?1 IS NULL OR m.name LIKE ?1 OR m.mobile LIKE ?1 OR m.legacy_id LIKE ?1)
+               AND (?2 IS NULL OR d.donation_type = ?2)
+               AND (?3 IS NULL OR d.member_id = ?3)
+               AND d.donated_at >= ?4
+               AND d.donated_at <= ?5",
             libsql::params![
-                search_val.clone(),
+                search_pattern.clone(),
                 donation_type,
                 member_id,
                 from.clone(),
@@ -125,13 +125,21 @@ pub async fn list_donations(
         .and_then(|r| r.get::<Option<i64>>(0).ok().flatten())
         .unwrap_or(0);
 
+    // 2. Prioritized Data Query
     let sql = format!(
-        "{} WHERE (m.name LIKE ?1 OR m.mobile LIKE ?1)
+        "{} WHERE (?1 IS NULL OR m.name LIKE ?1 OR m.mobile LIKE ?1 OR m.legacy_id LIKE ?1)
            AND (?2 IS NULL OR d.donation_type = ?2)
            AND (?3 IS NULL OR d.member_id = ?3)
-           AND date(d.donated_at) >= date(?4)
-           AND date(d.donated_at) <= date(?5)
-         ORDER BY d.donated_at DESC
+           AND d.donated_at >= ?4
+           AND d.donated_at <= ?5
+         ORDER BY 
+            CASE 
+                WHEN m.legacy_id LIKE ?1 THEN 1 -- Legacy ID matches get top priority
+                WHEN m.name LIKE ?1 THEN 2      -- Name matches get second priority
+                ELSE 3                          -- Phone matches / No search active
+            END ASC,
+            d.paid_for_period DESC NULLS LAST,
+            d.id DESC
          LIMIT ?6 OFFSET ?7",
         DONATION_SELECT
     );
@@ -140,7 +148,7 @@ pub async fn list_donations(
         .query(
             &sql,
             libsql::params![
-                search_val,
+                search_pattern,
                 donation_type,
                 member_id,
                 from,
@@ -196,14 +204,18 @@ pub async fn create_donation(input: DonationInput, db: State<'_, DbState>) -> Re
 
     let date_prefix = chrono::Local::now().format("%Y%m%d").to_string();
 
+    // Determine paid_for_period based on paid_for value
+    let paid_for_period = make_paid_for_period(input.paid_for.as_deref());
+
     conn.execute(
-        "INSERT INTO donations (member_id, donation_type, amount, paid_for, collected_by, slip_no, note, donated_at)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, COALESCE(?8, datetime('now')))",
+        "INSERT INTO donations (member_id, donation_type, amount, paid_for, paid_for_period, collected_by, slip_no, note, donated_at)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, COALESCE(?9, datetime('now')))",
         libsql::params![
             input.member_id,
             input.donation_type,
             input.amount,
-            input.paid_for.clone(),
+            input.paid_for.clone(), 
+            paid_for_period,           
             input.collected_by,
             input.slip_no.clone(),
             input.note.clone(),
@@ -268,14 +280,16 @@ pub async fn create_donations_batch(
     let mut first_id: i64 = 0;
 
     for (idx, paid_for) in input.paid_for_list.iter().enumerate() {
+        let paid_for_period = make_paid_for_period(Some(paid_for));
         conn.execute(
-            "INSERT INTO donations (member_id, donation_type, amount, paid_for, collected_by, slip_no, note, donated_at)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, COALESCE(?8, datetime('now')))",
+            "INSERT INTO donations (member_id, donation_type, amount, paid_for, paid_for_period, collected_by, slip_no, note, donated_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, COALESCE(?9, datetime('now')))",
             libsql::params![
                 input.member_id,
                 input.donation_type,
                 input.amount,
                 paid_for.clone(),
+                paid_for_period,
                 input.collected_by,
                 input.slip_no.clone(),
                 input.note.clone(),
@@ -335,17 +349,20 @@ pub async fn update_donation(
     let inner = lock.as_ref().ok_or("No database open")?;
     let conn = &inner.conn;
 
+    let paid_for_period = make_paid_for_period(input.paid_for.as_deref());
+
     conn.execute(
         "UPDATE donations SET
-            member_id = ?1, donation_type = ?2, amount = ?3, paid_for = ?4,
-            collected_by = ?5, slip_no = ?6, note = ?7,
-            donated_at = COALESCE(?8, donated_at)
-         WHERE id = ?9",
+            member_id = ?1, donation_type = ?2, amount = ?3, paid_for = ?4, paid_for_period = ?5,
+            collected_by = ?6, slip_no = ?7, note = ?8, paid_for_period = ?9,
+            donated_at = COALESCE(?10, donated_at)
+         WHERE id = ?11",
         libsql::params![
             input.member_id,
             input.donation_type,
             input.amount,
             input.paid_for,
+            paid_for_period,
             input.collected_by,
             input.slip_no,
             input.note,
@@ -495,42 +512,30 @@ pub async fn donation_summary(
     let from = from_date.unwrap_or_else(|| "1970-01-01".to_string());
     let to = to_date.unwrap_or_else(|| "9999-12-31".to_string());
 
-    let mut total_rows = conn
+    let mut summary_rows = conn
         .query(
-            "SELECT COALESCE(SUM(CAST(amount AS REAL)), 0.0)
+            "SELECT 
+                COALESCE(SUM(CAST(amount AS REAL)), 0.0) as total_amount,
+                COUNT(*) as total_count
              FROM donations
              WHERE (?1 IS NULL OR member_id = ?1)
-               AND date(donated_at) BETWEEN date(?2) AND date(?3)",
-            libsql::params![member_id, from.clone(), to.clone()], // ← add member_id
+               AND COALESCE(
+                     paid_for_period || '-01',
+                     date(donated_at)
+                   ) BETWEEN ?2 AND ?3",
+            libsql::params![member_id, from, to],
         )
         .await
         .map_err(|e| e.to_string())?;
 
-    let total_row = total_rows
+    let row = summary_rows
         .next()
         .await
         .map_err(|e| e.to_string())?
-        .ok_or("No result")?;
+        .ok_or("No result rows found")?;
 
-    let total = total_row
-        .get::<Option<f64>>(0)
-        .map_err(|e| e.to_string())?
-        .unwrap_or(0.0);
-
-    let mut count_rows = conn
-        .query(
-            "SELECT COUNT(*) FROM donations
-             WHERE date(donated_at) BETWEEN date(?1) AND date(?2)",
-            libsql::params![from, to],
-        )
-        .await
-        .map_err(|e| e.to_string())?;
-    let count_row = count_rows
-        .next()
-        .await
-        .map_err(|e| e.to_string())?
-        .ok_or("No result")?;
-    let count: i64 = count_row.get(0).map_err(|e| e.to_string())?;
+    let total: f64 = row.get(0).unwrap_or(0.0);
+    let count: i64 = row.get(1).unwrap_or(0);
 
     Ok(serde_json::json!({ "total": total, "count": count }))
 }
@@ -568,4 +573,24 @@ pub async fn count_donations(
     row.get::<Option<i64>>(0)
         .map_err(|e| e.to_string())
         .map(|v| v.unwrap_or(0))
+}
+
+
+fn make_paid_for_period(paid_for: Option<&str>) -> Option<String> {
+      if let Some(pf) = paid_for {
+        // try Jan 2026 format
+        if let Ok(date) = chrono::NaiveDate::parse_from_str(pf, "%b %Y") {
+            return Some(date.format("%Y-%m").to_string());
+        }
+
+        if let Ok(date) = chrono::NaiveDate::parse_from_str(pf, "%Y-%m-%d") {
+            return Some(date.format("%Y-%m").to_string());
+        }
+        // If that fails, try parsing as month
+        if let Ok(date) = chrono::NaiveDate::parse_from_str(pf, "%Y-%m") {
+            return Some(date.format("%Y-%m").to_string());
+        }
+    }
+
+    None    
 }
