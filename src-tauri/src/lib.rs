@@ -160,6 +160,7 @@ pub fn run() {
             report_top_donors,
             report_frequent_donors,
             report_monthly_summary,
+            report_collection_by_donated_at,
             // export
             export_members_csv,
         ])

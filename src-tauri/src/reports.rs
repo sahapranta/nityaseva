@@ -51,6 +51,52 @@ pub async fn report_donation_collection(
 }
 
 #[tauri::command]
+pub async fn report_collection_by_donated_at(
+    from_date: String,
+    to_date: String,
+    db: State<'_, DbState>,
+) -> Result<Vec<serde_json::Value>, String> {
+    let lock = db.0.lock().await;
+    let inner = lock.as_ref().ok_or("No database open")?;
+    let conn = &inner.conn;
+
+    let mut rows = conn
+        .query(
+            "SELECT d.id, d.slip_no, m.name, m.mobile, m.address,
+                    dt.name, d.amount, d.paid_for,
+                    d.donated_at, u.name
+             FROM donations d
+             JOIN members m ON m.id = d.member_id
+             LEFT JOIN donation_types dt ON dt.id = d.donation_type
+             LEFT JOIN users u ON u.id = d.collected_by
+             WHERE date(d.donated_at) BETWEEN date(?1) AND date(?2)
+             ORDER BY d.donated_at DESC",
+            [from_date, to_date],
+        )
+        .await
+        .map_err(|e| e.to_string())?;
+
+    let mut result = Vec::new();
+
+    while let Some(row) = rows.next().await.map_err(|e| e.to_string())? {
+        result.push(serde_json::json!({
+            "id": row.get::<i64>(0).unwrap_or_default(),
+            "slip_no": row.get::<Option<String>>(1).unwrap_or(None),
+            "member_name": row.get::<String>(2).unwrap_or_default(),
+            "mobile": row.get::<Option<String>>(3).ok(),
+            "address": row.get::<Option<String>>(4).ok(),
+            "donation_type": row.get::<Option<String>>(5).ok(),
+            "amount": row.get::<f64>(6).unwrap_or(0.0),
+            "paid_for": row.get::<Option<String>>(7).ok(),
+            "donated_at": row.get::<String>(8).unwrap_or_default(),
+            "collected_by": row.get::<Option<String>>(9).ok(),
+        }));
+    }
+
+    Ok(result)
+}
+
+#[tauri::command]
 pub async fn report_top_donors(
     from_date: Option<String>,
     to_date: Option<String>,

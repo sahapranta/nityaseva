@@ -3,11 +3,12 @@ import { invoke } from "@tauri-apps/api/core";
 import { useLang } from "../../contexts/LangContext";
 
 const CollectionReport = lazy(() => import("./Collection"));
+const CollectionByDateReport = lazy(() => import("./CollectionByDate"));
 const MonthlySummaryReport = lazy(() => import("./MonthlySummary"));
 const TopDonorsReport = lazy(() => import("./TopDonors"));
 const FrequentDonorsReport = lazy(() => import("./FrequentDonors"));
 
-const TABS = ["Monthly Summary", "Collection", "Top Donors", "Frequent Donors"] as const;
+const TABS = ["Monthly Summary", "Collection", "Collection (by Date)", "Top Donors", "Frequent Donors"] as const;
 type Tab = typeof TABS[number];
 
 function TabBar({ active, onChange }: { active: Tab; onChange: (t: Tab) => void }) {
@@ -54,6 +55,7 @@ export default function ReportsPage() {
       <Suspense fallback={<Loading />}>
         {tab === "Monthly Summary" && <MonthlySummaryReport orgName={orgName} />}
         {tab === "Collection" && <CollectionReport orgName={orgName} />}
+        {tab === "Collection (by Date)" && <CollectionByDateReport orgName={orgName} />}
         {tab === "Top Donors" && <TopDonorsReport orgName={orgName} />}
         {tab === "Frequent Donors" && <FrequentDonorsReport orgName={orgName} />}
       </Suspense>

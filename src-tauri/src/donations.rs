@@ -568,6 +568,29 @@ pub async fn count_donations(
         .map(|v| v.unwrap_or(0))
 }
 
+// #[tauri::command]
+// pub async fn get_donations_by_slip_no(slip_no: String, db: State<'_, DbState>) -> Result<Vec<Donation>, String> {
+//     let lock = db.0.lock().await;
+//     let inner = lock.as_ref().ok_or("No database open")?;
+//     let conn = &inner.conn;
+
+//     let sql = format!("{} WHERE d.slip_no = ?1 ORDER BY d.id ASC", DONATION_SELECT);
+
+//     let mut rows = conn
+//         .query(&sql, libsql::params![slip_no])
+//         .await
+//         .map_err(|e| e.to_string())?;
+
+//     let mut donations = Vec::new();
+//     while let Some(row) = rows.next().await.map_err(|e| e.to_string())? {
+//         if let Ok(d) = row_to_donation(&row) {
+//             donations.push(d);
+//         }
+//     }
+
+//     Ok(donations)
+// }
+
 
 fn make_paid_for_period(paid_for: Option<&str>) -> Option<String> {
       if let Some(pf) = paid_for {
