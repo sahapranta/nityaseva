@@ -8,6 +8,7 @@ export default function MonthlySummaryReport({ orgName }: { orgName: string }) {
   const [year, setYear] = useState(new Date().getFullYear());
   const [rows, setRows] = useState<MonthlySummary[]>([]);
   const [loading, setLoading] = useState(false);
+  const [inputYear, setInputYear] = useState<string>(String(new Date().getFullYear()));
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -45,16 +46,32 @@ export default function MonthlySummaryReport({ orgName }: { orgName: string }) {
     printReport("Monthly Donation Summary", `Year ${year}`, tableHTML, orgName);
   };
 
+  const handleYearChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setInputYear(e.target.value);
+  };
+
+  useEffect(() => {
+    const numericYear = Number(inputYear);
+
+    // Basic validation: Only trigger the API if it is a valid 4-digit year
+    if (isNaN(numericYear) || inputYear.length !== 4) return;
+
+    const timer = setTimeout(() => setYear(numericYear), 500); // 500ms delay
+
+    return () => clearTimeout(timer);
+  }, [inputYear]);
+
   return (
     <div>
       <div className="flex items-center gap-3 mb-4">
         <div className="flex flex-row items-center gap-2">
           <label className="label">{tr("year")}</label>
-          <select className="input w-25" value={year} onChange={e => setYear(Number(e.target.value))}>
-            {Array.from({ length: 6 }, (_, i) => new Date().getFullYear() - i).map(y => (
+          <input className="input w-25" value={inputYear} list="years" onChange={handleYearChange} />
+          <datalist id="years">
+            {Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - i).map(y => (
               <option key={y} value={y}>{y}</option>
             ))}
-          </select>
+          </datalist>
         </div>
         <div className="ml-auto">
           <button className="btn btn-primary" onClick={handlePrint} disabled={grandTotal === 0}>🖨 {tr("print")} PDF</button>

@@ -258,7 +258,6 @@ export default function DonationsPage() {
       {modalOpen && (
         <DonationModal
           donation={editing}
-          donationTypes={donationTypes}
           onSave={handleSaved}
           onClose={() => { setModalOpen(false); setEditing(null); }}
           currentUserId={user?.id ?? 0}

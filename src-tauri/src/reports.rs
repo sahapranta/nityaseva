@@ -20,8 +20,11 @@ pub async fn report_donation_collection(
              JOIN members m ON m.id = d.member_id
              LEFT JOIN donation_types dt ON dt.id = d.donation_type
              LEFT JOIN users u ON u.id = d.collected_by
-             WHERE date(d.donated_at) BETWEEN date(?1) AND date(?2)
-             ORDER BY d.donated_at ASC",
+             WHERE COALESCE(
+                     d.paid_for_period || '-01',
+                     date(d.donated_at)
+                   ) BETWEEN date(?1) AND date(?2)
+             ORDER BY d.paid_for_period DESC NULLS LAST",
             [from_date, to_date],
         )
         .await
@@ -152,16 +155,24 @@ pub async fn report_monthly_summary(
     let inner = lock.as_ref().ok_or("No database open")?;
     let conn = &inner.conn;
 
+    let year_str = year.to_string();
+    let start_period = format!("{}-01", year_str); // e.g., "2026-01"
+    let end_period = format!("{}-12", year_str); // e.g., "2026-12"
+
     let mut rows = conn
         .query(
-            "SELECT strftime('%m', donated_at),
-                    COUNT(*),
-                    SUM(amount)
-             FROM donations
-             WHERE strftime('%Y', donated_at) = ?1
-             GROUP BY 1
-             ORDER BY 1 ASC",
-            [year.to_string()],
+            "SELECT 
+            -- Extract the month from our resolved YYYY-MM string
+            SUBSTR(COALESCE(paid_for_period, strftime('%Y-%m', donated_at)), 6, 2) as month,
+            COUNT(*),
+            SUM(amount)
+         FROM donations
+         WHERE 
+            -- Check if the resolved YYYY-MM period falls within the target year
+            COALESCE(paid_for_period, strftime('%Y-%m', donated_at)) BETWEEN ?1 AND ?2
+         GROUP BY month
+         ORDER BY month ASC",
+            libsql::params![start_period, end_period],
         )
         .await
         .map_err(|e| e.to_string())?;

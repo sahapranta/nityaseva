@@ -36,13 +36,18 @@ pub struct DonationInput {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct DonationInputBatch {
     pub member_id: i64,
-    pub donation_type: Option<i64>,
-    pub amount: f64,
-    pub paid_for_list: Vec<String>,
+    pub entries: Vec<OtherDonationEntry>,
     pub collected_by: Option<i64>,
     pub slip_no: Option<String>,
     pub note: Option<String>,
     pub donated_at: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct OtherDonationEntry {
+    pub paid_for: String,
+    pub amount: f64,
+    pub donation_type: String,
 }
 
 fn row_to_donation(r: &libsql::Row) -> Result<Donation, libsql::Error> {
@@ -138,8 +143,8 @@ pub async fn list_donations(
                 WHEN m.name LIKE ?1 THEN 2      -- Name matches get second priority
                 ELSE 3                          -- Phone matches / No search active
             END ASC,
-            d.paid_for_period DESC NULLS LAST,
-            d.id DESC
+            d.id DESC,
+            d.paid_for_period DESC NULLS LAST
          LIMIT ?6 OFFSET ?7",
         DONATION_SELECT
     );
@@ -264,31 +269,29 @@ pub async fn create_donations_batch(
     input: DonationInputBatch,
     db: State<'_, DbState>,
 ) -> Result<i64, String> {
-    if input.amount <= 0.0 {
-        return Err("Amount must be greater than zero".to_string());
+    if input.entries.is_empty() {
+        return Err("At least one entry must be provided".to_string());
     }
 
-    if input.paid_for_list.is_empty() {
-        return Err("At least one month/date must be provided".to_string());
+    if input.entries.iter().any(|e| e.paid_for.is_empty() || e.amount <= 0.0) {
+        return Err("All entries must have a description and amount greater than zero".to_string());
     }
 
     let lock = db.0.lock().await;
     let inner = lock.as_ref().ok_or("No database open")?;
     let conn = &inner.conn;
-
-    let date_prefix = chrono::Local::now().format("%Y%m%d").to_string();
     let mut first_id: i64 = 0;
 
-    for (idx, paid_for) in input.paid_for_list.iter().enumerate() {
-        let paid_for_period = make_paid_for_period(Some(paid_for));
+    for (idx, entry) in input.entries.iter().enumerate() {
+        let paid_for_period = make_paid_for_period(Some(&entry.paid_for));
         conn.execute(
             "INSERT INTO donations (member_id, donation_type, amount, paid_for, paid_for_period, collected_by, slip_no, note, donated_at)
              VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, COALESCE(?9, datetime('now')))",
             libsql::params![
                 input.member_id,
-                input.donation_type,
-                input.amount,
-                paid_for.clone(),
+                entry.donation_type.clone(),
+                entry.amount,
+                entry.paid_for.clone(),
                 paid_for_period,
                 input.collected_by,
                 input.slip_no.clone(),
@@ -312,17 +315,7 @@ pub async fn create_donations_batch(
 
         if idx == 0 {
             first_id = new_id;
-        }
-
-        if input.slip_no.is_none() {
-            let slip = format!("{}-{}", date_prefix, new_id);
-            conn.execute(
-                "UPDATE donations SET slip_no = ?1 WHERE id = ?2",
-                libsql::params![slip, new_id],
-            )
-            .await
-            .map_err(|e| e.to_string())?;
-        }
+        }        
     }
 
     conn.execute(

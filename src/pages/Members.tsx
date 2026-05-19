@@ -175,6 +175,23 @@ export default function MembersPage() {
   const [deleting, setDeleting] = useState<Member | null>(null);
   const { tr } = useLang();
   const navigate = useNavigate();
+  const [copiedId, setCopiedId] = useState<number | null>(null);
+
+  const handleCopy = async (text: string | null, id: number) => {
+    if (!text || text === "—") return; // Don't copy placeholder text
+
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedId(id); // Set the current ID as copied
+
+      // Hide the popup after 2 seconds
+      setTimeout(() => {
+        setCopiedId(null);
+      }, 2000);
+    } catch (err) {
+      console.error("Failed to copy text: ", err);
+    }
+  };
 
   // Pagination
   const fetcher = useCallback(
@@ -199,7 +216,7 @@ export default function MembersPage() {
     invoke<MembershipType[]>("list_membership_types").then(setMembershipTypes);
   }, []);
 
-  // ── Actions ─────────────────────────────────────────────────────────
+  // Actions
   const handleDelete = async () => {
     if (!deleting) return;
     await invoke("delete_member", { id: deleting.id });
@@ -275,7 +292,24 @@ export default function MembersPage() {
                 <td className="font-medium select-none">
                   <Link to={`/members/${m.id}`}>{m.name}</Link>
                 </td>
-                <td className="text-muted">{m.mobile ?? "—"}</td>
+                <td className="text-muted cursor-pointer" onClick={() => handleCopy(m.mobile, m.id)}>
+                  <div className="relative">
+                    {m.mobile ?? "—"}
+                    {m.mobile && copiedId === m.id && (
+                      <span
+                        className="badge bg-indigo-500 text-white absolute start-6 translate-middle-x"
+                        style={{
+                          top: '-25px',
+                          zIndex: 10,
+                          fontSize: '0.75rem',
+                          animation: 'fadeIn 0.2s ease'
+                        }}
+                      >
+                        Copied!
+                      </span>
+                    )}
+                  </div>
+                </td>
                 <td className="text-muted">{m.district ?? "—"}</td>
                 <td className="text-muted">{m.membership_type_name ?? "—"}</td>
                 <td><StatusBadge status={m.status} /></td>

@@ -110,7 +110,7 @@ export default function Dashboard() {
         </div>
         <div className="stat-card">
           <div className="stat-label">{tr("avgDonation")}</div>
-          <div className="stat-value">{monthlyCount ? fmt(monthlyTotal / monthlyCount) : "৳ 0"}</div>
+          <div className="stat-value">{monthlyCount ? fmt(Math.ceil(monthlyTotal / monthlyCount)) : "৳ 0"}</div>
           <div className="stat-sub">per donation</div>
         </div>
       </div>
