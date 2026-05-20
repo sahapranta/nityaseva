@@ -1,12 +1,26 @@
 import type { Donation, OrgSettings } from "../types/donations";
 import { fmt, fmtDate } from "../utils/helper";
 
-export default function BuildReceipt(d: Donation, org: OrgSettings): string {
+export default function BuildReceipt(donations: Donation[], org: OrgSettings): string {
+    const first = donations[0];
+    const isBatch = donations.length > 1;
+    const total = donations.reduce((s, d) => s + d.amount, 0);
+
+    const entryRows = donations.map(d => `
+        <div class="row">
+            <span class="label">
+                ${d.donation_type_name ?? "General"}
+                ${d.paid_for ? `<span class="paid-for">(${d.paid_for})</span>` : ""}
+            </span>
+            <span class="value">${fmt(d.amount)}</span>
+        </div>
+    `).join("");
+
     return `<!DOCTYPE html>
 <html>
 <head>
 <meta charset="utf-8"/>
-<title>Receipt ${d.slip_no}</title>
+<title>Receipt ${first.slip_no}</title>
 <style>
   @page { size: A4; margin: 20mm; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -21,7 +35,11 @@ export default function BuildReceipt(d: Donation, org: OrgSettings): string {
   .row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px dashed #e8e5df; }
   .row:last-child { border-bottom: none; }
   .label { color: #5a564e; }
-  .value { font-weight: 500; text-align: right; }
+  .paid-for { font-size: 11px; color: #9b9589; margin-left: 4px; }
+  .value { font-weight: 500; text-align: right; white-space: nowrap; }
+  .subtotal-row { display: flex; justify-content: space-between; padding: 8px 0 0; margin-top: 4px; border-top: 1px solid #d6d2c9; }
+  .subtotal-label { font-size: 11px; color: #9b9589; }
+  .subtotal-value { font-size: 12px; font-weight: 600; color: #5a564e; }
   .amount-box { background: #fff8ed; border: 2px solid #de5d04; border-radius: 8px; padding: 16px 20px; margin: 24px 0; display: flex; justify-content: space-between; align-items: center; }
   .amount-label { font-size: 13px; color: #5a564e; }
   .amount-value { font-size: 26px; font-weight: 700; color: #de5d04; }
@@ -37,27 +55,31 @@ export default function BuildReceipt(d: Donation, org: OrgSettings): string {
     <div class="org-sub">${org.address ?? ""}</div>
     ${org.mobile ? `<div class="org-sub">Mobile: ${org.mobile}</div>` : ""}
     <div class="receipt-title">Donation Receipt</div>
-    <div class="slip-no">Slip No: ${d.slip_no ?? "—"} &nbsp;|&nbsp; Date: ${fmtDate(d.donated_at)}</div>
+    <div class="slip-no">Slip No: ${first.slip_no ?? "—"} &nbsp;|&nbsp; Date: ${fmtDate(first.donated_at)}</div>
   </div>
 
   <div class="section">
     <div class="section-title">Member Details</div>
-    <div class="row"><span class="label">Name</span><span class="value">${d.member_name}</span></div>
-    ${d.member_mobile ? `<div class="row"><span class="label">Mobile</span><span class="value">${d.member_mobile}</span></div>` : ""}
-    ${d.member_address ? `<div class="row"><span class="label">Address</span><span class="value">${d.member_address}</span></div>` : ""}
+    <div class="row"><span class="label">Name</span><span class="value">${first.member_name}</span></div>
+    ${first.member_mobile ? `<div class="row"><span class="label">Mobile</span><span class="value">${first.member_mobile}</span></div>` : ""}
+    ${first.member_address ? `<div class="row"><span class="label">Address</span><span class="value">${first.member_address}</span></div>` : ""}
   </div>
 
   <div class="section">
-    <div class="section-title">Donation Details</div>
-    <div class="row"><span class="label">Donation Type</span><span class="value">${d.donation_type_name ?? "General"}</span></div>
-    ${d.paid_for ? `<div class="row"><span class="label">Paid For</span><span class="value">${d.paid_for}</span></div>` : ""}
-    ${d.collected_by_name ? `<div class="row"><span class="label">Collected By</span><span class="value">${d.collected_by_name}</span></div>` : ""}
-    ${d.note ? `<div class="row"><span class="label">Note</span><span class="value">${d.note}</span></div>` : ""}
+    <div class="section-title">${isBatch ? "Donation Entries" : "Donation Details"}</div>
+    ${entryRows}
+    ${isBatch ? `
+    <div class="subtotal-row">
+      <span class="subtotal-label">${donations.length} entries</span>
+      <span class="subtotal-value">${fmt(total)}</span>
+    </div>` : ""}
+    ${first.collected_by_name ? `<div class="row" style="margin-top:${isBatch ? "12px" : "0"}"><span class="label">Collected By</span><span class="value">${first.collected_by_name}</span></div>` : ""}
+    ${first.note ? `<div class="row"><span class="label">Note</span><span class="value">${first.note}</span></div>` : ""}
   </div>
 
   <div class="amount-box">
     <span class="amount-label">Total Amount Received</span>
-    <span class="amount-value">${fmt(d.amount)}</span>
+    <span class="amount-value">${fmt(total)}</span>
   </div>
 
   <div class="footer">

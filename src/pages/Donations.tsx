@@ -15,15 +15,17 @@ import Pagination from "../components/Pagination";
 
 async function printReceipt(d: Donation, org: OrgSettings) {
   try {
-    const html = BuildReceipt(d, org);
-    const finalHtml = `
-            ${html}
-            <script>window.onload = () => { window.print(); }</script>
-        `;
+    // Fetch all donations sharing the same slip for a unified receipt
+    const batch: Donation[] = d.slip_no
+      ? await invoke<Donation[]>("get_donations_by_slip_no", { slipNo: d.slip_no })
+      : [d];
+
+    const donations = batch.length > 0 ? batch : [d];
+    const html = BuildReceipt(donations, org);
+    const finalHtml = `${html}<script>window.onload = () => { window.print(); }</script>`;
+
     const tempFileName = 'receipt.html';
-    await writeTextFile(tempFileName, finalHtml, {
-      baseDir: BaseDirectory.AppData
-    });
+    await writeTextFile(tempFileName, finalHtml, { baseDir: BaseDirectory.AppData });
     const appDataPath = await appDataDir();
     const fullPath = await join(appDataPath, tempFileName);
     await openPath(fullPath);

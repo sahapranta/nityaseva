@@ -272,7 +272,6 @@ pub async fn create_donations_batch(
     if input.entries.is_empty() {
         return Err("At least one entry must be provided".to_string());
     }
-
     if input.entries.iter().any(|e| e.paid_for.is_empty() || e.amount <= 0.0) {
         return Err("All entries must have a description and amount greater than zero".to_string());
     }
@@ -280,7 +279,14 @@ pub async fn create_donations_batch(
     let lock = db.0.lock().await;
     let inner = lock.as_ref().ok_or("No database open")?;
     let conn = &inner.conn;
+
+    let date_prefix = chrono::Local::now().format("%Y%m%d").to_string();
     let mut first_id: i64 = 0;
+
+    let normalized_slip = match &input.slip_no {
+        Some(s) if s.trim().is_empty() => None,
+        other => other.clone(),
+    };
 
     for (idx, entry) in input.entries.iter().enumerate() {
         let paid_for_period = make_paid_for_period(Some(&entry.paid_for));
@@ -294,28 +300,29 @@ pub async fn create_donations_batch(
                 entry.paid_for.clone(),
                 paid_for_period,
                 input.collected_by,
-                input.slip_no.clone(),
+                normalized_slip.clone(),
                 input.note.clone(),
                 input.donated_at.clone(),
             ],
         )
         .await
         .map_err(|e| e.to_string())?;
-
-        let mut id_rows = conn
-            .query("SELECT last_insert_rowid()", ())
-            .await
-            .map_err(|e| e.to_string())?;
-        let id_row = id_rows
-            .next()
-            .await
-            .map_err(|e| e.to_string())?
-            .ok_or("Insert failed")?;
-        let new_id: i64 = id_row.get(0).map_err(|e| e.to_string())?;
-
+    
         if idx == 0 {
-            first_id = new_id;
-        }        
+            first_id = conn.last_insert_rowid();
+        }
+    }
+
+    // Auto-generate a shared slip_no for all rows in this batch if none was provided
+    if normalized_slip.is_none() && first_id > 0 {
+        let slip = format!("{}-{}", date_prefix, first_id);
+        
+        conn.execute(
+            "UPDATE donations SET slip_no = ?1 WHERE slip_no IS NULL AND member_id = ?2 AND id >= ?3",
+            libsql::params![slip, input.member_id, first_id],
+        )
+        .await
+        .map_err(|e| e.to_string())?;                
     }
 
     conn.execute(
@@ -568,28 +575,31 @@ pub async fn count_donations(
         .map(|v| v.unwrap_or(0))
 }
 
-// #[tauri::command]
-// pub async fn get_donations_by_slip_no(slip_no: String, db: State<'_, DbState>) -> Result<Vec<Donation>, String> {
-//     let lock = db.0.lock().await;
-//     let inner = lock.as_ref().ok_or("No database open")?;
-//     let conn = &inner.conn;
+#[tauri::command]
+pub async fn get_donations_by_slip_no(
+    slip_no: String,
+    db: State<'_, DbState>,
+) -> Result<Vec<Donation>, String> {
+    let lock = db.0.lock().await;
+    let inner = lock.as_ref().ok_or("No database open")?;
+    let conn = &inner.conn;
 
-//     let sql = format!("{} WHERE d.slip_no = ?1 ORDER BY d.id ASC", DONATION_SELECT);
+    let sql = format!("{} WHERE d.slip_no = ?1 ORDER BY d.id ASC", DONATION_SELECT);
 
-//     let mut rows = conn
-//         .query(&sql, libsql::params![slip_no])
-//         .await
-//         .map_err(|e| e.to_string())?;
+    let mut rows = conn
+        .query(&sql, libsql::params![slip_no])
+        .await
+        .map_err(|e| e.to_string())?;
 
-//     let mut donations = Vec::new();
-//     while let Some(row) = rows.next().await.map_err(|e| e.to_string())? {
-//         if let Ok(d) = row_to_donation(&row) {
-//             donations.push(d);
-//         }
-//     }
+    let mut donations = Vec::new();
+    while let Some(row) = rows.next().await.map_err(|e| e.to_string())? {
+        if let Ok(d) = row_to_donation(&row) {
+            donations.push(d);
+        }
+    }
 
-//     Ok(donations)
-// }
+    Ok(donations)
+}
 
 
 fn make_paid_for_period(paid_for: Option<&str>) -> Option<String> {

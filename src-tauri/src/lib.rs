@@ -149,6 +149,7 @@ pub fn run() {
             toggle_donation_type,
             donation_summary,
             count_donations,
+            get_donations_by_slip_no,
             // settings
             get_org_settings,
             set_org_setting,
