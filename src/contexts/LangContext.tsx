@@ -6,7 +6,7 @@ const t: Record<string, Record<Lang, string>> = {
   // Nav
   dashboard: { en: "Dashboard", bn: "ড্যাশবোর্ড" },
   members: { en: "Members", bn: "সদস্যগণ" },
-  donations: { en: "Donations", bn: "দান" },
+  donations: { en: "Donations", bn: "অনুদান" },
   contacts: { en: "Contacts", bn: "যোগাযোগ" },
   labels: { en: "Labels", bn: "লেবেল" },
   sms: { en: "SMS Export", bn: "এসএমএস" },
@@ -17,6 +17,7 @@ const t: Record<string, Record<Lang, string>> = {
   last_month: { en: "Last Month", bn: "গত মাস" },
   this_year: { en: "This Year", bn: "এই বছর" },
   last_year: { en: "Last Year", bn: "গত বছর" },
+  next_month: { en: "Next Month", bn: "আগামী মাস" },
   from: { en: "From", bn: "থেকে" },
   to: { en: "To", bn: "পর্যন্ত" },
   apply: { en: "Apply", bn: "প্রয়োগ" },
@@ -73,9 +74,9 @@ const t: Record<string, Record<Lang, string>> = {
   amount: { en: "Amount", bn: "পরিমাণ" },
   date: { en: "Date", bn: "তারিখ" },
   type: { en: "Type", bn: "ধরন" },
-  donation_type: { en: "Donation Type", bn: "দানের ধরন" },
-  new_donation: { en: "New Donation", bn: "নতুন দান" },
-  edit_donation: { en: "Edit Donation", bn: "দান সম্পাদনা" },
+  donation_type: { en: "Donation Type", bn: "অনুদানের ধরন" },
+  new_donation: { en: "New Donation", bn: "নতুন অনুদান" },
+  edit_donation: { en: "Edit Donation", bn: "অনুদান সম্পাদনা" },
   clear: { en: "Clear", bn: "পরিষ্কার" },
   slip_no: { en: "Slip No.", bn: "স্লিপ নং" },
   paid_for: { en: "Paid For", bn: "পেইড ফর" },
@@ -84,10 +85,11 @@ const t: Record<string, Record<Lang, string>> = {
   total: { en: "Total", bn: "মোট" },
   all_types: { en: "All Types", bn: "সব ধরন" },
   member: { en: "Member", bn: "সদস্য" },
+  "member.plural": { en: "Members", bn: "সদস্যগণ" },
   editMember: { en: "Edit Member", bn: "সদস্য সম্পাদনা" },
   print_receipt: { en: "Print Receipt", bn: "রসিদ প্রিন্ট" },
   record_donation: { en: "Record Donation", bn: "দান রেকর্ড করুন" },
-  no_donations_found: { en: "No donations found", bn: "কোনো দান পাওয়া যায়নি" },
+  no_donations_found: { en: "No donations found", bn: "কোনো অনুদান পাওয়া যায়নি" },
   // Contacts
   all_statuses: { en: "All Statuses", bn: "সব অবস্থা" },
   // sms
@@ -99,21 +101,37 @@ const t: Record<string, Record<Lang, string>> = {
   // Member Export
   member_export: { en: "Member Export", bn: "সদস্য এক্সপোর্ট" },
   export_member_list: { en: "Export member list as CSV or Excel", bn: "সদস্য তালিকা সিএসভি বা এক্সেল হিসেবে এক্সপোর্ট করুন" },
+  export_options: { en: "Export Options", bn: "এক্সপোর্ট অপশন" },
+  member_status: { en: "Member Status", bn: "সদস্য অবস্থা" },
+  active_only: { en: "Active Only", bn: "শুধু সক্রিয়" },
+  inactive_only: { en: "Inactive Only", bn: "শুধু নিষ্ক্রিয়" },
+  all_members: { en: "All Members", bn: "সকল সদস্য" },
+  load_preview: { en: "Load Preview", bn: "প্রিভিউ লোড করুন" },
+  columns_to_include: { en: "Columns to Include", bn: "কলাম অন্তর্ভুক্ত করুন" },
+  click_load_preview: { en: "Click \"Load Preview\" to see data", bn: "ডেটা দেখতে \"প্রিভিউ লোড করুন\" ক্লিক করুন" },  
+  export_excel: { en: "Export Excel", bn: "এক্সেল এক্সপোর্ট" },
+  id: { en: "ID", bn: "আইডি" },
+  membership_type: { en: "Membership Type", bn: "সদস্যপদের প্রকার" },
+  joined_at: { en: "Joined At", bn: "যোগদান তারিখ" },
   // Dashboard 
   totalMembers: { en: "Total", bn: "মোট সদস্য" },
   activeMembers: { en: "Active", bn: "সক্রিয় সদস্য" },
   thisMonth: { en: "This Month", bn: "এই মাসে" },
-  avgDonation: { en: "Average", bn: "গড় দান" },
-  recentDonations: { en: "Recent Donations", bn: "সাম্প্রতিক দান" },
-  noDonationRecorded: { en: "No donations recorded yet", bn: "এখনও কোনো দান গৃহীত হয়নি" },
+  avgDonation: { en: "Average", bn: "গড় অনুদান" },
+  recentDonations: { en: "Recent Donations", bn: "সাম্প্রতিক অনুদান" },
+  noDonationRecorded: { en: "No donations recorded yet", bn: "এখনও কোনো অনুদান গৃহীত হয়নি" },
+  per_donation: { en: "per donation", bn: "প্রতি অনুদান" },
+  last_n_entries: { en: "Last {n} entries", bn: "সর্বশেষ {n}টি অনুদান" },
   // Member View
-  donation_history: { en: "Donation History", bn: "দানের ইতিহাস" },
+  donation_history: { en: "Donation History", bn: "অনুদানের ইতিহাস" },
+  of_total: { en: "of {n} total", bn: "মোট {n}টির মধ্যে" },
 };
 
 interface LangCtx {
   lang: Lang;
   setLang: (l: Lang) => void;
   tr: (key: string) => string;
+  trn: (key: string, n: string|number|null) => string;
   trs: (key: string, count: number) => string;
 }
 
@@ -121,6 +139,7 @@ const LangContext = createContext<LangCtx>({
   lang: "en",
   setLang: () => { },
   tr: (k) => k,
+  trn: (k: string, _n: string|number|null) => k,
   trs: (k: string, _count: number) => k,
 });
 
@@ -138,7 +157,7 @@ export function LangProvider({ children }: { children: ReactNode }) {
 
   const tr = (key: string) => t[key]?.[lang] ?? key;
   const trs = (key: string, count: number): string => {
-    const suffix = count === 1 ? "" : ".plural";
+    const suffix = count <= 1 ? "" : ".plural";
 
     const pluralizedTranslation = t[`${key}${suffix}`]?.[lang];
 
@@ -147,8 +166,15 @@ export function LangProvider({ children }: { children: ReactNode }) {
     return tr(key);
   }
 
+  const trn = (key: string, n: string | number | null): string => {
+    const translation = t[key]?.[lang];
+    if (!translation) return key;
+
+    return translation.replace("{n}", n?.toString() ?? "");
+  }
+
   return (
-    <LangContext.Provider value={{ lang, setLang: switchLang, tr, trs }}>
+    <LangContext.Provider value={{ lang, setLang: switchLang, tr, trs, trn }}>
       {children}
     </LangContext.Provider>
   );

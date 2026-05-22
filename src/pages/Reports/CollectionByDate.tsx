@@ -91,16 +91,16 @@ export default function CollectionByDateReport({ orgName }: { orgName: string })
 
       <div className="grid-cols-3 mb-4">
         <div className="stat-card">
-          <div className="stat-label">Total Collected</div>
-          <div className="stat-value">{fmt(total)}</div>
+          <div className="stat-label">{tr("total_collected")}</div>
+          <div className="stat-value">{fmt(total, "en-BD", 0)}</div>
         </div>
         <div className="stat-card">
-          <div className="stat-label">Donations</div>
+          <div className="stat-label">{tr("donations")}</div>
           <div className="stat-value">{rows.length}</div>
         </div>
         <div className="stat-card">
-          <div className="stat-label">Avg per Donation</div>
-          <div className="stat-value">{rows.length ? fmt(total / rows.length) : "৳ 0"}</div>
+          <div className="stat-label">{tr("avg_per_donation")}</div>
+          <div className="stat-value">{rows.length ? fmt(Math.ceil(total / rows.length), "en-BD", 0) : "৳ 0"}</div>
         </div>
       </div>
 

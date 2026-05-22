@@ -37,7 +37,7 @@ export default function Dashboard() {
   const [monthlyCount, setMonthlyCount] = useState(0);
   const [orgName, setOrgName] = useState("Nityaseva");
   const [loading, setLoading] = useState(true);
-  const { tr } = useLang();
+  const { tr, trn, lang } = useLang();
 
   useEffect(() => {
     const today = new Date();
@@ -53,8 +53,8 @@ export default function Dashboard() {
         fromDate: null,
         toDate: null,
         memberId: null,
-        page: 1,           // Mandatory
-        pageSize: 8,       // Mandatory
+        page: 1,
+        pageSize: 6,
       }),
       invoke<{ total: number; count: number }>("donation_summary", {
         fromDate: firstOfMonth,
@@ -94,24 +94,31 @@ export default function Dashboard() {
       {/* Stat cards */}
       <div className="grid-cols-4 mb-4">
         <div className="stat-card">
-          <div className="stat-label">{tr("totalMembers")}</div>
-          <div className="stat-value">{memberCounts.total}</div>
-          <div className="stat-sub">{memberCounts.inactive} inactive</div>
+          <div className="stat-label" style={{ fontFamily: lang == "bn" ? 'SutonnyMJ' : 'inherit' }}>{tr("totalMembers")}</div>
+          <div className="stat-value" style={{ fontFamily: lang == "bn" ? 'SutonnyMJ' : 'inherit' }}>{memberCounts.total}</div>
+          <div className="stat-sub">
+            <span style={{ fontFamily: lang == "bn" ? 'SutonnyMJ' : 'inherit' }}>{memberCounts.inactive}</span> {tr('inactive')}</div>
         </div>
         <div className="stat-card">
-          <div className="stat-label">{tr("activeMembers")}</div>
-          <div className="stat-value">{memberCounts.active}</div>
-          <div className="stat-sub">of {memberCounts.total} total</div>
+          <div className="stat-label" style={{ fontFamily: lang == "bn" ? 'SutonnyMJ' : 'inherit' }}>{tr("activeMembers")}</div>
+          <div className="stat-value" style={{ fontFamily: lang == "bn" ? 'SutonnyMJ' : 'inherit' }}>{memberCounts.active}</div>
+          <div className="stat-sub" style={{ fontFamily: lang == "bn" ? 'SutonnyMJ' : 'inherit' }}>{trn("of_total", memberCounts.total)}</div>
         </div>
         <div className="stat-card">
-          <div className="stat-label">{tr("thisMonth")}</div>
-          <div className="stat-value">{fmt(monthlyTotal)}</div>
-          <div className="stat-sub">{monthlyCount} donation{monthlyCount !== 1 ? "s" : ""}</div>
+          <div className="stat-label" style={{ fontFamily: lang == "bn" ? 'SutonnyMJ' : 'inherit' }}>{tr("thisMonth")}</div>
+          <div className="stat-value" style={{ fontFamily: lang == "bn" ? 'SutonnyMJ' : 'inherit' }}>{fmt(monthlyTotal)}</div>
+          <div className="stat-sub lowercase"><span style={{ fontFamily: lang == "bn" ? 'SutonnyMJ' : 'inherit' }}>{monthlyCount} </span>
+            {tr("donations")}
+          </div>
         </div>
         <div className="stat-card">
-          <div className="stat-label">{tr("avgDonation")}</div>
-          <div className="stat-value">{monthlyCount ? fmt(Math.ceil(monthlyTotal / monthlyCount)) : "৳ 0"}</div>
-          <div className="stat-sub">per donation</div>
+          <div className="stat-label" style={{ fontFamily: lang == "bn" ? 'SutonnyMJ' : 'inherit' }}>{tr("avgDonation")}</div>
+          <div className="stat-value" style={{ fontFamily: lang == "bn" ? 'SutonnyMJ' : 'inherit' }}>
+            {monthlyCount ? fmt(Math.ceil(monthlyTotal / monthlyCount)) : "৳ 0"}
+          </div>
+          <div className="stat-sub">
+            {tr("per_donation")}
+          </div>
         </div>
       </div>
 
@@ -120,7 +127,7 @@ export default function Dashboard() {
         <div className="card-header">
           <div className="card-title">{tr("recentDonations")}</div>
           <span className="text-xs text-muted ml-auto">
-            Last {recentDonations.length} entries
+            {trn("last_n_entries", recentDonations.length)}
           </span>
         </div>
 

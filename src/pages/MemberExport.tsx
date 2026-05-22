@@ -3,6 +3,8 @@ import { invoke } from "@tauri-apps/api/core";
 import { save } from "@tauri-apps/plugin-dialog";
 import { writeTextFile } from "@tauri-apps/plugin-fs";
 import { useLang } from "../contexts/LangContext";
+import MonthYearPicker from "../components/MonthYearPicker";
+import Icon from "../components/Icon";
 
 interface MemberRow {
   id: number;
@@ -18,16 +20,21 @@ interface MemberRow {
   notes: string | null;
 }
 
+const ICONS = {
+  csv: "M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z M14 2v6h6 M9 13h6 M9 17h3",        
+  excel: "M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z M14 2v6h6 M8 13h8 M8 17h8 M12 10v10"
+};
+
 const ALL_COLUMNS: { key: keyof MemberRow; label: string }[] = [
-  { key: "id",              label: "ID" },
-  { key: "name",            label: "Name" },
-  { key: "mobile",          label: "Mobile" },
-  { key: "address",         label: "Address" }, // acts as Full Address (Address, District, PIN)
+  { key: "id", label: "ID" },
+  { key: "name", label: "Name" },
+  { key: "mobile", label: "Mobile" },
+  { key: "address", label: "Address" }, // acts as Full Address (Address, District, PIN)
   { key: "membership_type", label: "Membership Type" },
-  { key: "status",          label: "Status" },
-  { key: "last_donation",   label: "Last Donation" },
-  { key: "joined_at",       label: "Joined At" },
-  { key: "notes",           label: "Notes" },
+  { key: "status", label: "Status" },
+  { key: "last_donation", label: "Last Donation" },
+  { key: "joined_at", label: "Joined At" },
+  { key: "notes", label: "Notes" },
 ];
 
 async function downloadCSV(filename: string, headers: string[], rows: string[][]) {
@@ -84,8 +91,9 @@ async function downloadExcel(filename: string, headers: string[], rows: string[]
 }
 
 export default function MemberExportPage() {
-  const { tr } = useLang();
+  const { tr, trs } = useLang();
   const [statusFilter, setStatusFilter] = useState("active");
+  const [monthFilter, setMonthFilter] = useState<string>(`{new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}`);
   const [selectedCols, setSelectedCols] = useState<Set<keyof MemberRow>>(
     new Set(["id", "name", "mobile", "address"])
   );
@@ -106,6 +114,7 @@ export default function MemberExportPage() {
     try {
       const data = await invoke<MemberRow[]>("export_members_csv", {
         status: statusFilter || null,
+        month: monthFilter || null,
       });
       setRows(data);
       setLoaded(true);
@@ -134,7 +143,7 @@ export default function MemberExportPage() {
 
   const activeCols = ALL_COLUMNS.filter(c => selectedCols.has(c.key));
   const headers = activeCols.map(c => c.label);
-  
+
   // Use the helper for table rows so exports get the merged address
   const tableRows = rows.map(r => activeCols.map(c => getFormattedValue(r, c.key)));
 
@@ -157,10 +166,12 @@ export default function MemberExportPage() {
         </div>
         <div className="flex gap-2">
           <button className="btn btn-secondary" onClick={handleCSV} disabled={!loaded || rows.length === 0}>
-            ⬇ Export CSV
+            <Icon d={ICONS.csv} />
+            {tr("export_csv")}
           </button>
           <button className="btn btn-primary" onClick={handleExcel} disabled={!loaded || rows.length === 0}>
-            ⬇ Export Excel
+            <Icon d={ICONS.excel} />
+            {tr("export_excel")}
           </button>
         </div>
       </div>
@@ -168,19 +179,25 @@ export default function MemberExportPage() {
       <div className="grid grid-cols-2 items-start gap-4">
         {/* Options */}
         <div className="card">
-          <div className="card-header"><div className="card-title">Export Options</div></div>
+          <div className="card-header"><div className="card-title">{tr("export_options")}</div></div>
           <div className="card-body flex flex-col gap-4">
-            <div className="form-group">
-              <label className="label">Member Status</label>
-              <select className="input" value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setLoaded(false); }}>
-                <option value="active">Active only</option>
-                <option value="inactive">Inactive only</option>
-                <option value="">All members</option>
-              </select>
+            <div className="flex gap-4">
+              <div className="form-group w-100">
+                <label className="label">{tr("member_status")}</label>
+                <select className="input" value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setLoaded(false); }}>
+                  <option value="active">{tr("active_only")}</option>
+                  <option value="inactive">{tr("inactive_only")}</option>
+                  <option value="">{tr("all_members")}</option>
+                </select>
+              </div>
+              <div className="form-group w-100">
+                <label className="label">{tr("month")}</label>
+                <MonthYearPicker defaultValue={monthFilter} onChange={(v) => setMonthFilter(v)} className="w-full" />
+              </div>
             </div>
 
             <div className="form-group">
-              <label className="label">Columns to include</label>
+              <label className="label">{tr("columns_to_include")}</label>
               <div className="flex flex-col gap-1.5 mt-1">
                 {ALL_COLUMNS.map(col => (
                   <label key={col.key} className="flex items-center gap-2 cursor-pointer text-sm">
@@ -196,7 +213,7 @@ export default function MemberExportPage() {
             </div>
 
             <button className="btn btn-primary" onClick={loadData} disabled={loading}>
-              {loading ? "Loading…" : "Load Preview"}
+              {loading ? tr("loading") : tr("load_preview")}
             </button>
           </div>
         </div>
@@ -204,22 +221,22 @@ export default function MemberExportPage() {
         {/* Preview */}
         <div className="card">
           <div className="card-header flex items-center justify-between">
-            <div className="card-title">Preview</div>
+            <div className="card-title">{tr("preview")}</div>
             {loaded && (
               <span className="text-xs text-gray-500 ml-auto">
-                {rows.length} member{rows.length !== 1 ? "s" : ""}
+                {rows.length} {trs("member", rows.length)}
               </span>
             )}
           </div>
           <div className="overflow-auto max-h-[480px]">
             {!loaded && (
               <div className="p-8 text-center text-gray-500">
-                Click "Load Preview" to see data
+                {tr("click_load_preview")}
               </div>
             )}
             {loaded && rows.length === 0 && (
               <div className="p-8 text-center text-gray-500">
-                No members found
+                {tr("no_members_found")}
               </div>
             )}
             {loaded && rows.length > 0 && (
@@ -228,7 +245,7 @@ export default function MemberExportPage() {
                   <tr className="bg-gray-50 sticky top-0">
                     {activeCols.map(c => (
                       <th key={c.key} className="px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-wider text-gray-500 border-b border-gray-200 whitespace-nowrap">
-                        {c.label}
+                        {tr(c.label.toLowerCase().replace(/ /g, "_"))}
                       </th>
                     ))}
                   </tr>
@@ -239,7 +256,7 @@ export default function MemberExportPage() {
                       {activeCols.map(c => {
                         const display = getFormattedValue(r, c.key) || "—";
                         const hasValue = display !== "—";
-                        
+
                         return (
                           <td key={c.key} className={`px-3 py-1.5 max-w-[160px] truncate ${hasValue ? 'text-gray-900' : 'text-gray-400'}`}>
                             {display}

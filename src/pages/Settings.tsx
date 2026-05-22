@@ -8,7 +8,7 @@ import { TursoSettingsTab } from "./TursoSetup";
 interface OrgSettings { [key: string]: string; }
 interface MembershipType { id: number; name: string; amount: number; interval: string | null; is_active: number; }
 interface DonationType { id: number; name: string; is_active: number; }
-interface UserRow { id: number; name: string; mobile: string | null; role: string; status: string; }
+interface UserRow { id: number; name: string; mobile: string | null; role: string; status: string; last_login: string; }
 
 // Tab bar 
 const TABS = ["Organization", "Membership Types", "Donation Types", "Users", "Database", "Updates", "Sync"] as const;
@@ -28,6 +28,18 @@ function TabBar({ active, onChange }: { active: Tab; onChange: (t: Tab) => void 
       ))}
     </div>
   );
+}
+
+function Eye({ open, className }: { open: boolean; className?: string }) {
+  return (<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="16" height="16" className={className}>
+    {open ? (<path d="M12 5c-7.633 0-11 6.927-11 7s3.367 7 11 7 11-6.927 11-7-3.367-7-11-7zm0 12a5 5 0 1 1 0-10 5 5 0 0 1 0 10zm0-8a3 3 0 1 0 .001 6.001A3 3 0 0 0 12 9z" />) : (
+      <>
+        <path d="M12 5c-7.633 0-11 6.927-11 7s3.367 7 11 7c2.387 0 4.533-.787
+6.364-2.071l-1.414-1.414A8.958 8.958 0 0 1 12 17c-4.411 0-7.936-3.134-9-5 1.064-1.866 4.589-5 9-5a8.958 8.958 0 0 1 7.364 4.071l1.414-1.414A10.958 10.958 0 0 0 12 5z" />
+        <path d="M12 9a3 3 0 1 0 .001 6.001A3 3 0 0 0 12 9z" />
+      </>
+    )}
+  </svg>);
 }
 
 // ── Toast
@@ -433,6 +445,15 @@ function UsersTab({ onToast, currentRole }: { onToast: (m: string, ok: boolean) 
     return false;
   };
 
+  const [showPin, setShowPin] = useState(false);
+  const isMismatched = pin2.length > 0 && pin1 !== pin2;
+  // Clean up helper to keep the TSX readable
+  const handlePinChange = (value: string, setter: (val: string) => void) => {
+    // Strips non-digits instantly
+    const cleanValue = value.replace(/\D/g, "");
+    setter(cleanValue);
+  };
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <div className="card">
@@ -452,7 +473,7 @@ function UsersTab({ onToast, currentRole }: { onToast: (m: string, ok: boolean) 
                   <td className="text-muted">{u.mobile ?? "—"}</td>
                   <td><span className="badge badge-info">{u.role.replace("_", " ")}</span></td>
                   <td><span className={`badge ${u.status === "active" ? "badge-success" : "badge-neutral"}`}>{u.status}</span></td>
-                  <td className="text-muted" style={{ fontSize: 11 }}>{u.status}</td>
+                  <td className="text-muted">{u.last_login ? new Date(u.last_login).toLocaleString() : "—"}</td>
                   <td>
                     {canManage(u) && (
                       <button className="btn btn-ghost btn-sm" onClick={() => { setResetting(u); setPin1(""); setPin2(""); setError(""); }}>
@@ -478,32 +499,90 @@ function UsersTab({ onToast, currentRole }: { onToast: (m: string, ok: boolean) 
             <div className="modal-body flex flex-col gap-3">
               <div className="form-group">
                 <label className="label">Name *</label>
-                <input className="input" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} autoFocus />
+                <input className="input" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} autoFocus  required={true}/>
               </div>
-              <div className="grid-cols-2">
+              <div className="grid grid-cols-2">
                 <div className="form-group">
                   <label className="label">Mobile</label>
-                  <input className="input" value={form.mobile} onChange={e => setForm(f => ({ ...f, mobile: e.target.value }))} />
+                  <input className="input tracking-widest" value={form.mobile} onChange={e => setForm(f => ({ ...f, mobile: e.target.value }))} placeholder="01XXXXXXXX" maxLength={11} minLength={11} required={true}/>
                 </div>
                 <div className="form-group">
                   <label className="label">Role</label>
-                  <select className="input" value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value }))}>
+                  <select className="input" value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value }))} required={true}>
                     <option value="operator">Operator</option>
                     {currentRole === "super_admin" && <option value="admin">Admin</option>}
                   </select>
                 </div>
               </div>
-              <div className="grid-cols-2">
-                <div className="form-group">
-                  <label className="label">PIN (6 digits)</label>
-                  <input className="input" type="password" maxLength={6} value={pin1} onChange={e => setPin1(e.target.value.replace(/\D/g, ""))} />
+              <div className="space-y-2">
+                {/* Layout container */}
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+
+                  {/* PIN Field */}
+                  <div className="form-group">
+                    <label htmlFor="pin" className="label block text-sm font-medium mb-1">
+                      PIN (6 digits)
+                    </label>
+                    <div className="relative">
+                      <input
+                        id="pin"
+                        className={`w-full px-3 py-1 bg-white dark:bg-slate-900 border text-slate-800 dark:text-slate-100 placeholder-slate-300 dark:placeholder-slate-600 rounded-md font-mono tracking-[0.7rem] shadow-sm transition-all duration-200 outline-none
+                          ${isMismatched
+                            ? 'border-rose-300 focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10'
+                            : 'border-slate-200 dark:border-slate-800 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 hover:border-slate-300 dark:hover:border-slate-700'
+                          }`}
+                        type={showPin ? "text" : "password"}
+                        maxLength={6}
+                        inputMode="numeric" // Forces numeric keypad on mobile
+                        pattern="[0-9]*"
+                        value={pin1}
+                        onChange={(e) => handlePinChange(e.target.value, setPin1)}
+                        placeholder="••••••"
+                      />
+                      <button
+                        type="button"
+                        className="absolute inset-y-0 right-0 flex items-center pr-2 text-gray-500 hover:text-gray-700 focus:outline-none"
+                        onClick={() => setShowPin(!showPin)}
+                        aria-label={showPin ? "Hide PIN" : "Show PIN"}
+                      >
+                        {showPin ? <Eye open={true} className="h-5 w-5" /> : <Eye open={false} className="h-5 w-5" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Confirm PIN Field */}
+                  <div className="form-group">
+                    <label htmlFor="confirm-pin" className="label block text-sm font-medium mb-1">
+                      Confirm PIN
+                    </label>
+                    <div className="relative">
+                      <input
+                        id="confirm-pin"
+                        className={`w-full px-3 py-1 bg-white dark:bg-slate-900 border text-slate-800 dark:text-slate-100 placeholder-slate-300 dark:placeholder-slate-600 rounded-md font-mono tracking-[0.7rem] shadow-sm transition-all duration-200 outline-none
+                ${isMismatched 
+                  ? 'border-rose-300 focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10' 
+                  : 'border-slate-200 dark:border-slate-800 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 hover:border-slate-300 dark:hover:border-slate-700'
+                }`}
+                        type={showPin ? "text" : "password"}
+                        maxLength={6}
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        value={pin2}
+                        onChange={(e) => handlePinChange(e.target.value, setPin2)}
+                        placeholder="••••••"
+                      />
+                    </div>
+                  </div>
                 </div>
-                <div className="form-group">
-                  <label className="label">Confirm PIN</label>
-                  <input className="input" type="password" maxLength={6} value={pin2} onChange={e => setPin2(e.target.value.replace(/\D/g, ""))} />
-                </div>
+
+                {/* Real-time Inline Feedback */}
+                {pin2.length > 0 && pin1 !== pin2 && (
+                  <p className="text-sm text-red-500 animate-fade-in">
+                    PINs do not match yet.
+                  </p>
+                )}
               </div>
-              {error && <p className="text-danger text-xs">{error}</p>}
+              {error && <p className="text-danger text-base">{error}</p>}
             </div>
             <div className="modal-footer">
               <button className="btn btn-secondary" onClick={() => setAdding(false)}>Cancel</button>
@@ -531,7 +610,7 @@ function UsersTab({ onToast, currentRole }: { onToast: (m: string, ok: boolean) 
                 <label className="label">Confirm PIN</label>
                 <input className="input" type="password" maxLength={6} value={pin2} onChange={e => setPin2(e.target.value.replace(/\D/g, ""))} />
               </div>
-        
+
               {error && <p className="mt-2 text-danger text-xs">{error}</p>}
             </div>
             <div className="modal-footer">

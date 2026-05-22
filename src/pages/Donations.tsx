@@ -12,6 +12,7 @@ import { openPath } from '@tauri-apps/plugin-opener';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { PagedResult, usePagination } from "../hooks/usePagination";
 import Pagination from "../components/Pagination";
+import { Copyable } from "../components/Copyable";
 
 async function printReceipt(d: Donation, org: OrgSettings) {
   try {
@@ -204,9 +205,9 @@ export default function DonationsPage() {
             {donations.map(d => (
               <tr key={d.id}>
                 <td className="text-muted" style={{ fontSize: 11 }}>{d.slip_no}</td>
-                <td>
-                  <div className="font-medium">{d.member_name}</div>
-                  {d.member_mobile && <div className="text-muted" style={{ fontSize: 11 }}>{d.member_mobile}</div>}
+                <td className="cursor-pointer">
+                  <div className="font-medium">{d.member_name}</div>                  
+                  {d.member_mobile && <Copyable mobile={d.member_mobile} />}
                 </td>
                 <td>
                   {d.donation_type_name

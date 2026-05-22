@@ -255,7 +255,11 @@ pub async fn create_donation(input: DonationInput, db: State<'_, DbState>) -> Re
 
     // Update member last_donation
     conn.execute(
-        "UPDATE members SET last_donation = COALESCE(?1, datetime('now')), updated_at = datetime('now') WHERE id = ?2",
+        "UPDATE members 
+         SET last_donation = COALESCE(?1, datetime('now')),
+             updated_at = datetime('now'),
+             status = 'active'
+         WHERE id = ?2",
         libsql::params![input.donated_at, input.member_id],
     )
     .await
@@ -326,7 +330,11 @@ pub async fn create_donations_batch(
     }
 
     conn.execute(
-        "UPDATE members SET last_donation = COALESCE(?1, datetime('now')), updated_at = datetime('now') WHERE id = ?2",
+        "UPDATE members 
+         SET last_donation = COALESCE(?1, datetime('now')),
+             updated_at = datetime('now'),
+             status = 'active'
+         WHERE id = ?2",
         libsql::params![input.donated_at, input.member_id],
     )
     .await

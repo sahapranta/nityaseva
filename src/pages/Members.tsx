@@ -297,7 +297,7 @@ export default function MembersPage() {
                     {m.mobile ?? "—"}
                     {m.mobile && copiedId === m.id && (
                       <span
-                        className="badge bg-indigo-500 text-white absolute start-6 translate-middle-x"
+                        className="badge bg-indigo-400 text-white absolute start-6 translate-middle-x"
                         style={{
                           top: '-25px',
                           zIndex: 10,

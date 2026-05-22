@@ -123,7 +123,7 @@ export default function MemberView() {
                 <button className="btn btn-ghost mb-4" onClick={() => navigate("/members")}>
                     ← Back
                 </button>
-                <p className="text-muted">Member not found.</p>
+                <p className="text-muted">{tr("member_not_found")}.</p>
             </div>
         );
     }
@@ -169,7 +169,7 @@ export default function MemberView() {
                             {
                                 label: "District",
                                 value: member.district
-                                    ? `${member.district}${member.pin_code ? ` — ${member.pin_code}` : ""}`
+                                    ? `${member.district}${member.pin_code ? ` - ${member.pin_code}` : ""}`
                                     : null,
                             },
                             { label: "Joined", value: fmtDate(member.joined_at) },
@@ -197,7 +197,7 @@ export default function MemberView() {
                             <div className="w-px h-8 bg-border-soft" />
                             <div className="text-right">
                                 <div className="text-xs text-muted font-semibold uppercase tracking-wide">
-                                    Donations
+                                    {tr("donations")}
                                 </div>
                                 <div className="text-lg font-bold mt-0.5">{total}</div>
                                 {member.last_donation && (

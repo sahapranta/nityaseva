@@ -162,6 +162,7 @@ pub fn run() {
             report_frequent_donors,
             report_monthly_summary,
             report_collection_by_donated_at,
+            report_collection_by_month,
             // export
             export_members_csv,
         ])

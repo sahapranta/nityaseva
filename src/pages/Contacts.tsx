@@ -4,6 +4,7 @@ import { openUrl } from '@tauri-apps/plugin-opener';
 import { useLang } from "../contexts/LangContext";
 import { usePagination, PagedResult } from "../hooks/usePagination";
 import Pagination from "../components/Pagination";
+import { Copyable } from "../components/Copyable";
 
 interface Member {
   id: number;
@@ -202,7 +203,7 @@ export default function ContactsPage() {
                 <div>
                   <div className="label mb-1">{tr("mobile")}</div>
                   <div className="flex items-center gap-2">
-                    <span className="font-mono text-xs">{selected.mobile}</span>
+                    <Copyable mobile={selected.mobile} />
                     <button
                       className="btn btn-sm"
                       style={{ background: "#25D366", color: "white", border: "none", gap: 6 }}

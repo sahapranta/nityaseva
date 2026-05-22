@@ -12,6 +12,7 @@ pub struct UserRow {
     pub mobile: String,
     pub role: String,
     pub status: String,
+    pub last_login: String,
 }
 
 // ── Helpers
@@ -56,6 +57,7 @@ fn row_to_user(r: &libsql::Row, app_data_path: &str) -> Result<UserRow, libsql::
         mobile,
         role: decrypt_role(role, app_data_path),
         status,
+        last_login: r.get(5).unwrap_or_default(),
     })
 }
 
@@ -196,7 +198,7 @@ pub async fn create_user(
     mobile: String,
     passcode: String,
     role: String,
-    app: AppHandle,
+    // app: AppHandle,
     db: State<'_, DbState>,
 ) -> Result<(), String> {
     if passcode.len() != 6 || !passcode.chars().all(|c| c.is_ascii_digit()) {
@@ -217,7 +219,7 @@ pub async fn create_user(
     let lock = db.0.lock().await;
     let inner = lock.as_ref().ok_or("No database open")?;
     let conn = &inner.conn;
-    let app_data_path = get_app_data_path(&app);
+    // let app_data_path = get_app_data_path(&app);
 
     // Add this after the passcode uniqueness check:
     let mut mobile_rows = conn
@@ -238,12 +240,12 @@ pub async fn create_user(
     }
 
     let hashed_passcode = hash_passcode(&passcode)?;
-    let encrypted_role = encrypt(&role, &app_data_path)?;
+    // let encrypted_role = encrypt(&role, &app_data_path)?;
 
     conn.execute(
         "INSERT INTO users (name, mobile, passcode, role, status)
          VALUES (?1, ?2, ?3, ?4, 'active')",
-        libsql::params![name, mobile, hashed_passcode, encrypted_role],
+        libsql::params![name, mobile, hashed_passcode, role],
     )
     .await
     .map_err(|e| e.to_string())?;
@@ -286,7 +288,7 @@ pub async fn list_users(app: AppHandle, db: State<'_, DbState>) -> Result<Vec<Us
 
     let mut rows = conn
         .query(
-            "SELECT id, name, mobile, role, status FROM users ORDER BY id",
+            "SELECT id, name, mobile, role, status, last_login FROM users ORDER BY id",
             (),
         )
         .await

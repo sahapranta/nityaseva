@@ -54,14 +54,14 @@ fn row_to_member(r: &libsql::Row) -> Result<Member, libsql::Error> {
     })
 }
 
-// ── Commands ──────────────────────────────────────────────────────────
-
+// Commands
 #[tauri::command]
 pub async fn list_members(
     search: Option<String>,
     status: Option<String>,
-    page: i64,      // Add this
-    page_size: i64, // Add this
+    page: i64,
+    page_size: i64,
+    eligible: Option<String>, // e.g. "2026-05"
     db: State<'_, DbState>,
 ) -> Result<PagedResult<Member>, String> {
     let lock = db.0.lock().await;
@@ -76,44 +76,88 @@ pub async fn list_members(
 
     let status_filter = status.unwrap_or_else(|| "%".to_string());
 
-    let mut count_row = conn
-        .query(
-            "SELECT COUNT(*) FROM members 
-             WHERE (?1 IS NULL OR name LIKE ?1 OR mobile LIKE ?1 OR legacy_id LIKE ?1) 
-               AND status LIKE ?2",
-            libsql::params![search_val.clone(), status_filter.clone()],
-        )
-        .await
-        .map_err(|e| e.to_string())?;
-
-    let total: i64 = if let Some(row) = count_row.next().await.map_err(|e| e.to_string())? {
-        row.get(0).unwrap_or(0)
+    // Build the eligible JOIN clause conditionally
+    let eligible_join = if eligible.is_some() {
+        "JOIN donations d ON d.member_id = m.id AND d.paid_for_period = ?5"
     } else {
-        0
+        ""
     };
 
-    let mut rows = conn
-        .query(
-            "SELECT m.id, m.name, m.mobile, m.address, m.district, m.pin_code,
-                    m.membership_type, mt.name as mt_name,
-                    m.status, m.skip_until, m.last_donation, m.legacy_id, m.joined_at, m.notes
-             FROM members m
-             LEFT JOIN membership_types mt ON mt.id = m.membership_type
-             WHERE (?1 IS NULL OR m.name LIKE ?1 OR m.mobile LIKE ?1 OR m.legacy_id LIKE ?1)
-               AND m.status LIKE ?2
-             ORDER BY 
-                CASE 
-                    WHEN m.legacy_id LIKE ?1 THEN 1
-                    WHEN m.name LIKE ?1 THEN 2
-                    ELSE 3
-                END ASC,
-                m.status ASC,
-                m.id DESC
-             LIMIT ?3 OFFSET ?4",
+    let count_sql = format!(
+        "SELECT COUNT(DISTINCT m.id) FROM members m
+         {eligible_join}
+         WHERE (?1 IS NULL OR m.name LIKE ?1 OR m.mobile LIKE ?1 OR m.legacy_id LIKE ?1)
+           AND m.status LIKE ?2"
+    );
+
+    let select_sql = format!(
+        "SELECT m.id, m.name, m.mobile, m.address, m.district, m.pin_code,
+                m.membership_type, mt.name as mt_name,
+                m.status, m.skip_until, m.last_donation, m.legacy_id, m.joined_at, m.notes
+         FROM members m
+         LEFT JOIN membership_types mt ON mt.id = m.membership_type
+         {eligible_join}
+         WHERE (?1 IS NULL OR m.name LIKE ?1 OR m.mobile LIKE ?1 OR m.legacy_id LIKE ?1)
+           AND m.status LIKE ?2
+         GROUP BY m.id
+         ORDER BY
+            CASE
+                WHEN m.legacy_id LIKE ?1 THEN 1
+                WHEN m.name LIKE ?1 THEN 2
+                ELSE 3
+            END ASC,
+            m.status ASC,
+            m.id DESC
+         LIMIT ?3 OFFSET ?4"
+    );
+
+    // Execute count query
+    let total: i64 = {
+        let mut count_row = if let Some(ref period) = eligible {
+            conn.query(
+                &count_sql,
+                libsql::params![search_val.clone(), status_filter.clone(), period.clone()],
+            )
+            .await
+            .map_err(|e| e.to_string())?
+        } else {
+            conn.query(
+                &count_sql,
+                libsql::params![search_val.clone(), status_filter.clone()],
+            )
+            .await
+            .map_err(|e| e.to_string())?
+        };
+
+        if let Some(row) = count_row.next().await.map_err(|e| e.to_string())? {
+            row.get(0).unwrap_or(0)
+        } else {
+            0
+        }
+    };
+
+    // Execute select query
+    let mut rows = if let Some(ref period) = eligible {
+        conn.query(
+            &select_sql,
+            libsql::params![
+                search_val,
+                status_filter,
+                params.limit(),
+                params.offset(),
+                period.clone()
+            ],
+        )
+        .await
+        .map_err(|e| e.to_string())?
+    } else {
+        conn.query(
+            &select_sql,
             libsql::params![search_val, status_filter, params.limit(), params.offset()],
         )
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| e.to_string())?
+    };
 
     let mut members = Vec::new();
     while let Some(row) = rows.next().await.map_err(|e| e.to_string())? {
@@ -122,7 +166,6 @@ pub async fn list_members(
         }
     }
 
-    // 3. Wrap in PagedResult
     Ok(PagedResult::new(members, total, &params))
 }
 

@@ -5,6 +5,7 @@ import { appDataDir, join } from '@tauri-apps/api/path';
 import { openPath } from '@tauri-apps/plugin-opener';
 import { useLang } from "../contexts/LangContext";
 import type { PagedResult } from "../hooks/usePagination";
+import MonthYearPicker from "../components/MonthYearPicker";
 
 interface Member {
     id: number;
@@ -130,6 +131,28 @@ function buildLabelsHTML(members: Member[], org: OrgSettings): string {
 </html>`;
 }
 
+function MakeAddress({ member }: { member: Member }) {
+    return (<div className="leading-loose text-sm">
+        <strong className="text-base block">{member.name}</strong>
+
+        {member.address && (
+            <div>{member.address}</div>
+        )}
+
+        {(member.district || member.pin_code) && (
+            <div>
+                {member.district}
+                {member.district && member.pin_code && '-'}
+                {member.pin_code}
+            </div>
+        )}
+
+        {member.mobile && (
+            <div>Mobile: {member.mobile}</div>
+        )}
+    </div>);
+}
+
 // Labels Page
 export default function LabelsPage() {
     const { tr } = useLang();
@@ -138,7 +161,8 @@ export default function LabelsPage() {
     const [org, setOrg] = useState<OrgSettings>({});
     const [loading, setLoading] = useState(false);
     const [search, setSearch] = useState("");
-    const [previewing, setPreviewing] = useState(false);
+    const [previewing, setPreviewing] = useState<boolean>(false);
+    const [eligible, setEligible] = useState<string | null>(null);
 
     const load = useCallback(async () => {
         setLoading(true);
@@ -149,6 +173,7 @@ export default function LabelsPage() {
                     status: "active",
                     page: 1,
                     pageSize: 1000,
+                    eligible: eligible || null,
                 }),
                 invoke<OrgSettings>("get_org_settings"),
             ]);
@@ -161,9 +186,9 @@ export default function LabelsPage() {
         } finally {
             setLoading(false);
         }
-    }, [search]);
+    }, [search, eligible]);
 
-    useEffect(() => { load(); }, []);
+    useEffect(() => { load(); }, [load]);
 
     useEffect(() => {
         const t = setTimeout(load, 300);
@@ -188,16 +213,6 @@ export default function LabelsPage() {
 
     const selectedMembers = members.filter(m => selected.has(m.id));
 
-    //   const handlePrint = () => {
-    //     if (selectedMembers.length === 0) return;
-    //     const html = buildLabelsHTML(selectedMembers, org);
-    //     const win = window.open("", "_blank");
-    //     if (!win) return;
-    //     win.document.write(html);
-    //     win.document.close();
-    //     win.focus();
-    //     setTimeout(() => { win.print(); }, 400);
-    //   };
     const handlePrint = async () => {
         if (selectedMembers.length === 0) return;
 
@@ -279,8 +294,11 @@ export default function LabelsPage() {
                         onChange={e => setSearch(e.target.value)}
                     />
                 </div>
+
+                <MonthYearPicker onChange={(v) => setEligible(v)} />
+
                 <button className="btn btn-secondary btn-sm" onClick={toggleAll}>
-                    {selected.size === members.length ? "Deselect All" : "Select All"}
+                    {selected.size === members.length ? tr("deselect_all") : tr("select_all")}
                 </button>
             </div>
 
@@ -364,13 +382,7 @@ export default function LabelsPage() {
                                         <div className="text-xs font-semibold uppercase tracking-wide text-text-muted mb-2">
                                             প্রাপক / Receiver
                                         </div>
-                                        <div className="leading-loose text-sm">
-                                            <strong className="text-base block">{selectedMembers[0].name}</strong>
-                                            {selectedMembers[0].address && <>{selectedMembers[0].address}<br /></>}
-                                            {selectedMembers[0].district && <>{selectedMembers[0].district}<br /></>}
-                                            {selectedMembers[0].pin_code && <>PIN: {selectedMembers[0].pin_code}<br /></>}
-                                            {selectedMembers[0].mobile && <>Mobile: {selectedMembers[0].mobile}</>}
-                                        </div>
+                                        <MakeAddress member={selectedMembers[0]} />
                                     </div>
                                 </div>
                             )}

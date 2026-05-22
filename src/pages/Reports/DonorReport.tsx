@@ -13,7 +13,7 @@ export default function DonorReport({ mode, orgName }: DonorReportProps) {
   const today = new Date().toISOString().slice(0, 10);
   const [from, setFrom] = useState("");
   const [to, setTo] = useState(today);
-  const [limit, setLimit] = useState(20);
+  const [limit, setLimit] = useState(10);
   const [rows, setRows] = useState<DonorRow[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -75,7 +75,7 @@ export default function DonorReport({ mode, orgName }: DonorReportProps) {
         </div>
         <div className="flex flex-row items-center gap-2">
           <label className="label">{tr("show_top")}</label>
-          <select className="input w-[80px]" value={limit} onChange={e => setLimit(Number(e.target.value))}>
+          <select className="input w-20" value={limit} onChange={e => setLimit(Number(e.target.value))}>
             {[10, 20, 50, 100].map(n => <option key={n} value={n}>{n}</option>)}
           </select>
         </div>
