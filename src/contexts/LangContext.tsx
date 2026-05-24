@@ -122,6 +122,9 @@ const t: Record<string, Record<Lang, string>> = {
   noDonationRecorded: { en: "No donations recorded yet", bn: "এখনও কোনো অনুদান গৃহীত হয়নি" },
   per_donation: { en: "per donation", bn: "প্রতি অনুদান" },
   last_n_entries: { en: "Last {n} entries", bn: "সর্বশেষ {n}টি অনুদান" },
+  daily_collection: { en: "Daily Collection", bn: "দৈনিক সংগ্রহ" },
+  today: { en: "Today", bn: "আজ" },
+  yesterday: { en: "Yesterday", bn: "গতকাল" },
   // Member View
   donation_history: { en: "Donation History", bn: "অনুদানের ইতিহাস" },
   of_total: { en: "of {n} total", bn: "মোট {n}টির মধ্যে" },

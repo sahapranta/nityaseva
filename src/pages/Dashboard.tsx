@@ -4,6 +4,7 @@ import { useLang } from "../contexts/LangContext";
 import type { OrgSettings } from "../types/donations";
 import { fmt as UFmt } from '../utils/helper'
 import { PagedResult } from "../hooks/usePagination";
+import { DailyCollection, type DaySummary } from "../components/DailyCollection";
 
 interface Donation {
   id: number;
@@ -33,6 +34,7 @@ export default function Dashboard() {
     total: 0, active: 0, inactive: 0
   });
   const [recentDonations, setRecentDonations] = useState<Donation[]>([]);
+  const [collectionData, setCollectionData] = useState<DaySummary[]>([]);
   const [monthlyTotal, setMonthlyTotal] = useState(0);
   const [monthlyCount, setMonthlyCount] = useState(0);
   const [orgName, setOrgName] = useState("Nityaseva");
@@ -44,7 +46,6 @@ export default function Dashboard() {
     const firstOfMonth = new Date(today.getFullYear(), today.getMonth(), 1)
       .toISOString().slice(0, 10);
     const todayStr = today.toISOString().slice(0, 10);
-
     Promise.all([
       invoke<MemberCounts>("count_members"),
       invoke<PagedResult<Donation>>("list_donations", {
@@ -61,11 +62,13 @@ export default function Dashboard() {
         toDate: todayStr,
       }),
       invoke<OrgSettings>("get_org_settings"),
-    ]).then(([counts, donations, summary, org]) => {
+      invoke<DaySummary[]>("report_weekly_summary_aggregate"),
+    ]).then(([counts, donations, summary, org, collection]) => {
       setMemberCounts(counts);
       setRecentDonations(donations.data);
       setMonthlyTotal(summary.total);
       setMonthlyCount(summary.count);
+      setCollectionData(collection);
       if (org.name) setOrgName(org.name);
     }).catch(console.error)
       .finally(() => setLoading(false));
@@ -123,58 +126,61 @@ export default function Dashboard() {
       </div>
 
       {/* Recent donations */}
-      <div className="card">
-        <div className="card-header">
-          <div className="card-title">{tr("recentDonations")}</div>
-          <span className="text-xs text-muted ml-auto">
-            {trn("last_n_entries", recentDonations.length)}
-          </span>
-        </div>
-
-        {recentDonations.length === 0 ? (
-          <div className="py-10 text-center text-sm text-muted">
-            {tr("noDonationRecorded")}
+      <div className="grid grid-cols-3 gap-2">
+        <div className="card col-span-3 md:col-span-2">
+          <div className="card-header">
+            <div className="card-title">{tr("recentDonations")}</div>
+            <span className="text-xs text-muted ml-auto">
+              {trn("last_n_entries", recentDonations.length)}
+            </span>
           </div>
-        ) : (
-          <div>
-            {recentDonations.map((d, i) => (
-              <div
-                key={d.id}
-                className={`grid grid-cols-[1fr_auto] items-center px-4 py-3 gap-x-4 gap-y-1 transition-colors hover:bg-surface-3 ${i < recentDonations.length - 1 ? "border-b border-border-soft" : ""
-                  }`}
-              >
-                {/* Left */}
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-semibold text-text-primary truncate">
-                      {d.member_name}
-                    </span>
-                    {d.donation_type_name && (
-                      <span className={`badge ${typeBadgeClass(d.donation_type_name)} text-xs py-0 px-2 shrink-0`}>
-                        {d.donation_type_name}
+
+          {recentDonations.length === 0 ? (
+            <div className="py-10 text-center text-sm text-muted">
+              {tr("noDonationRecorded")}
+            </div>
+          ) : (
+            <div>
+              {recentDonations.map((d, i) => (
+                <div
+                  key={d.id}
+                  className={`grid grid-cols-[1fr_auto] items-center px-4 py-3 gap-x-4 gap-y-1 transition-colors hover:bg-surface-3 ${i < recentDonations.length - 1 ? "border-b border-border-soft" : ""
+                    }`}
+                >
+                  {/* Left */}
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-semibold text-text-primary truncate">
+                        {d.member_name}
                       </span>
-                    )}
+                      {d.donation_type_name && (
+                        <span className={`badge ${typeBadgeClass(d.donation_type_name)} text-xs py-0 px-2 shrink-0`}>
+                          {d.donation_type_name}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 flex-wrap mt-0.5">
+                      {d.member_mobile && (
+                        <span className="text-sm text-muted">{d.member_mobile}</span>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 flex-wrap mt-0.5">
-                    {d.member_mobile && (
-                      <span className="text-sm text-muted">{d.member_mobile}</span>
-                    )}
-                  </div>
-                </div>
 
-                {/* Right */}
-                <div className="text-right shrink-0">
-                  <div className="font-bold text-saffron-700 tracking-tight whitespace-nowrap">
-                    {fmt(d.amount)}
-                  </div>
-                  <div className="text-sm text-muted mt-0.5">
-                    {fmtDate(d.donated_at)}
+                  {/* Right */}
+                  <div className="text-right shrink-0">
+                    <div className="font-bold text-saffron-700 tracking-tight whitespace-nowrap">
+                      {fmt(d.amount)}
+                    </div>
+                    <div className="text-sm text-muted mt-0.5">
+                      {fmtDate(d.donated_at)}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
+              ))}
+            </div>
+          )}
+        </div>
+        <DailyCollection collection={collectionData} />
       </div>
     </div>
   );

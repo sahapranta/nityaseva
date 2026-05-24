@@ -163,6 +163,8 @@ pub fn run() {
             report_monthly_summary,
             report_collection_by_donated_at,
             report_collection_by_month,
+            report_weekly_summary,
+            report_weekly_summary_aggregate,
             // export
             export_members_csv,
         ])
