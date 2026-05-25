@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { useNavigate, createSearchParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import type { PagedResult } from "../hooks/usePagination";
+import { useLang } from "../contexts/LangContext";
 
 interface Member {
   id: number;
@@ -29,6 +30,7 @@ export function GlobalSearch() {
   const [highlighted, setHighlighted] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const { tr } = useLang();
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -89,7 +91,8 @@ export function GlobalSearch() {
   };
 
   const goToMember = (m: Member) => {
-    onNavigate({ pathname: "members", search: createSearchParams({ member: m.id.toString() }).toString() });
+    // onNavigate({ pathname: "members", search: createSearchParams({ member: m.id.toString() }).toString() });
+    onNavigate("/members/" + m.id);
     setOpen(false);
   };
 
@@ -130,7 +133,7 @@ export function GlobalSearch() {
           <kbd className="px-1.5 py-0.5 rounded text-xs bg-surface-4 border border-border font-mono">Esc</kbd>
         </div>
 
-        {currentPage === 1 && loading && <div className="p-5 text-center text-text-muted text-sm">Searching…</div>}
+        {currentPage === 1 && loading && <div className="p-5 text-center text-text-muted text-sm">{tr("searching")}…</div>}
         {!loading && query && results.length === 0 && (
           <div className="p-6 text-center text-text-muted text-sm">No members found for "{query}"</div>
         )}
@@ -168,16 +171,16 @@ export function GlobalSearch() {
 
                 <div className="flex gap-1.5 shrink-0">
                   <button className="btn btn-secondary btn-sm" onClick={e => { e.stopPropagation(); goToMember(m); }}>
-                    View
+                    {tr("view")}
                   </button>
                   <button className="btn btn-primary btn-sm" onClick={e => { e.stopPropagation(); goToDonation(m); }}>
-                    + Donate
+                    + {tr("donate")}
                   </button>
                 </div>
               </div>
             ))}
             {loading && currentPage > 1 && (
-              <div className="p-3 text-center text-text-muted text-xs">Loading more…</div>
+              <div className="p-3 text-center text-text-muted text-xs">{tr("loading_more")}…</div>
             )}
           </div>
         )}
@@ -204,7 +207,7 @@ export function SearchTrigger() {
         <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0" />
       </svg>
       <span className="flex-1">Search members…</span>
-      <kbd className="text-text-muted rounded-sm bg-surface-4 border border-border px-1.5 py-0.5 text-xs font-mono">⌘F</kbd>
+      <kbd className="text-text-muted rounded-sm bg-surface-2 border border-border px-1.5 py-0.5 text-xs font-mono">ctrl+f</kbd>
     </div>
   );
 }

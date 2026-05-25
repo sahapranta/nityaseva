@@ -264,18 +264,14 @@ export default function DonationModal({
             setSaving(false);
         }
     };
-
-    // ─────────────────────────────────────────────────────────────────────────
-
+    
     return (
-        <div className="modal-overlay" onClick={onClose}>
+        <div className="modal-overlay">
             <div
                 className="modal"
                 style={{ maxWidth: 520, display: "flex", flexDirection: "column", maxHeight: "90vh" }}
                 onClick={e => e.stopPropagation()}
             >
-
-                {/* ── Header ────────────────────────────────────────────────── */}
                 <div className="modal-header">
                     <div className="modal-title">
                         {isEditing ? tr("edit_donation") : tr("new_donation")}
@@ -290,14 +286,8 @@ export default function DonationModal({
                         </svg>
                     </button>
                 </div>
-
-                {/* ── Scrollable body ───────────────────────────────────────── */}
-                <div
-                    className="modal-body flex flex-col gap-4"
-                    style={{ flex: 1, overflowY: "auto" }}
-                >
-
-                    {/* Member ------------------------------------------------ */}
+             
+                <div className="modal-body flex flex-col gap-4 flex-1 overflow-auto">
                     <div className="form-group relative" ref={memberDropdownRef}>
                         <label className="label">
                             {tr("member")} <span className="text-danger">*</span>

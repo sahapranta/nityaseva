@@ -57,6 +57,7 @@ const t: Record<string, Record<Lang, string>> = {
   district: { en: "District", bn: "জেলা" },
   postCode: { en: "Postcode", bn: "পোস্টকোড" },
   status: { en: "Status", bn: "অবস্থা" },
+  all_status: { en: "All Status", bn: "সব অবস্থা" },
   active: { en: "Active", bn: "সক্রিয়" },
   inactive: { en: "Inactive", bn: "নিষ্ক্রিয়" },
   membership: { en: "Membership", bn: "সদস্যপদ" },
@@ -128,6 +129,9 @@ const t: Record<string, Record<Lang, string>> = {
   // Member View
   donation_history: { en: "Donation History", bn: "অনুদানের ইতিহাস" },
   of_total: { en: "of {n} total", bn: "মোট {n}টির মধ্যে" },
+  deselect_all: { en: "Deselect All", bn: "সব নির্বাচন বাতিল" },
+  pin: { en: "POSTCODE", bn: "পোস্টকোড" },
+  loading_more: { en: "Loading more", bn: "আরও লোড হচ্ছে" },
 };
 
 interface LangCtx {
