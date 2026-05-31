@@ -83,7 +83,7 @@ export default function MemberModal({
           <div className="grid-cols-2">
             <div className="form-group">
               <label className="label">{tr("fullName")} <span className="text-danger">*</span></label>
-              <input className="input" value={form.name} onChange={e => set("name", e.target.value)} autoFocus required />
+              <input className="input" value={form.name} onChange={e => set("name", e.target.value)} autoFocus required placeholder={tr("fullNamePlaceholder")} />
             </div>
             <div className="form-group">
               <label className="label">{tr("mobile")} <span className="text-danger">*</span></label>
@@ -93,17 +93,17 @@ export default function MemberModal({
 
           <div className="form-group">
             <label className="label">{tr("address")}</label>
-            <input className="input" value={form.address} onChange={e => set("address", e.target.value)} />
+            <input className="input" value={form.address} onChange={e => set("address", e.target.value)}  placeholder={tr("addressPlaceholder")} />
           </div>
 
           <div className="grid-cols-2">
             <div className="form-group">
               <label className="label">{tr("district")}</label>
-              <input className="input" value={form.district} onChange={e => set("district", e.target.value)} />
+              <input className="input" value={form.district} onChange={e => set("district", e.target.value)} placeholder={tr("districtPlaceholder")} />
             </div>
             <div className="form-group">
               <label className="label">{tr("postCode")}</label>
-              <input className="input" value={form.pin_code} onChange={e => set("pin_code", e.target.value)} />
+              <input className="input" value={form.pin_code} onChange={e => set("pin_code", e.target.value)} placeholder={tr("postCodePlaceholder")} />
             </div>
           </div>
 
@@ -136,7 +136,7 @@ export default function MemberModal({
 
           <div className="form-group">
             <label className="label">{tr("notes")}</label>
-            <textarea className="input" value={form.notes} onChange={e => set("notes", e.target.value)} rows={2} />
+            <textarea className="input" value={form.notes} onChange={e => set("notes", e.target.value)} rows={2} placeholder={tr("notesPlaceholder")} />
           </div>
 
           {error && <p className="text-danger text-xs">{error}</p>}

@@ -136,6 +136,11 @@ const t: Record<string, Record<Lang, string>> = {
   loading_more: { en: "Loading more", bn: "আরও লোড হচ্ছে" },
 
   initializing: { en: "Initializing", bn: "প্রস্তুত করা হচ্ছে" },
+  fullNamePlaceholder: { en: "Full Name", bn: "পূর্ণ নাম" },
+  addressPlaceholder: { en: "Address", bn: "পূর্ণ ঠিকানা" },
+  districtPlaceholder: { en: "District", bn: "জেলা" },
+  postCodePlaceholder: { en: "Post Code", bn: "পোস্টকোড" },
+  notesPlaceholder: { en: "Notes", bn: "নোটস" },
 };
 
 interface LangCtx {
