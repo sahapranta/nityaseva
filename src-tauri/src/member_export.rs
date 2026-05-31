@@ -13,7 +13,6 @@ pub async fn export_members_csv(
 
     let status_filter = status.unwrap_or_else(|| "%".to_string());
 
-    // 1. Build the eligible JOIN clause dynamically just like list_members
     let eligible_join = if eligible.is_some() {
         "JOIN donations d ON d.member_id = m.id AND d.paid_for_period = ?2"
     } else {

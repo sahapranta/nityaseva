@@ -93,7 +93,7 @@ async function downloadExcel(filename: string, headers: string[], rows: string[]
 export default function MemberExportPage() {
   const { tr, trs } = useLang();
   const [statusFilter, setStatusFilter] = useState("active");
-  const [monthFilter, setMonthFilter] = useState<string>(`{new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}`);
+  const [monthFilter, setMonthFilter] = useState<string>('');
   const [selectedCols, setSelectedCols] = useState<Set<keyof MemberRow>>(
     new Set(["id", "name", "mobile", "address"])
   );
@@ -112,9 +112,10 @@ export default function MemberExportPage() {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
+      console.log(statusFilter, monthFilter);
       const data = await invoke<MemberRow[]>("export_members_csv", {
         status: statusFilter || null,
-        month: monthFilter || null,
+        eligible: monthFilter || null,
       });
       setRows(data);
       setLoaded(true);
@@ -123,7 +124,7 @@ export default function MemberExportPage() {
     } finally {
       setLoading(false);
     }
-  }, [statusFilter]);
+  }, [statusFilter, monthFilter]);
 
   // Helper to format specific cell values for both export and preview
   const getFormattedValue = (r: MemberRow, key: keyof MemberRow): string => {
@@ -192,7 +193,7 @@ export default function MemberExportPage() {
               </div>
               <div className="form-group w-100">
                 <label className="label">{tr("month")}</label>
-                <MonthYearPicker defaultValue={monthFilter} onChange={(v) => setMonthFilter(v)} className="w-full" />
+                <MonthYearPicker value={monthFilter} onChange={(v) => setMonthFilter(v)} className="w-full" />
               </div>
             </div>
 
@@ -236,7 +237,7 @@ export default function MemberExportPage() {
             )}
             {loaded && rows.length === 0 && (
               <div className="p-8 text-center text-gray-500">
-                {tr("no_members_found")}
+                {tr("noMembersFound")}
               </div>
             )}
             {loaded && rows.length > 0 && (
