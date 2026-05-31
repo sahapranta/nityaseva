@@ -206,7 +206,7 @@ export function SearchTrigger() {
       <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
         <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0" />
       </svg>
-      <span className="flex-1">Search members…</span>
+      <span className="flex-1">Search…</span>
       <kbd className="text-text-muted rounded-sm bg-surface-2 border border-border px-1.5 py-0.5 text-xs font-mono">ctrl+f</kbd>
     </div>
   );

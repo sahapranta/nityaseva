@@ -69,8 +69,9 @@ export function useUpdater() {
 // ── Update dialog component ───────────────────────────────────────────
 export function UpdaterDialog() {
   const { state, installUpdate, restart } = useUpdater();
+  const [dismissed, setDismissed] = useState(false);
 
-  if (state.status === "idle" || state.status === "checking") return null;
+  if (state.status === "idle" || state.status === "checking" || dismissed) return null;
 
   if (state.status === "error") {
     return (
@@ -147,7 +148,7 @@ export function UpdaterDialog() {
         <div className="modal-footer">
           {state.status === "available" && (
             <>
-              <button className="btn btn-secondary" onClick={() => {}}>Later</button>
+              <button className="btn btn-secondary" onClick={() => setDismissed(true)}>Later</button>
               <button className="btn btn-primary" onClick={installUpdate}>
                 Download & Install
               </button>

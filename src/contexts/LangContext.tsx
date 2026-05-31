@@ -130,8 +130,12 @@ const t: Record<string, Record<Lang, string>> = {
   donation_history: { en: "Donation History", bn: "অনুদানের ইতিহাস" },
   of_total: { en: "of {n} total", bn: "মোট {n}টির মধ্যে" },
   deselect_all: { en: "Deselect All", bn: "সব নির্বাচন বাতিল" },
+  select_all: { en: "Select All", bn: "সব নির্বাচন করুন" },
+  select: { en: "Select", bn: "নির্বাচন করুন" },
   pin: { en: "POSTCODE", bn: "পোস্টকোড" },
   loading_more: { en: "Loading more", bn: "আরও লোড হচ্ছে" },
+
+  initializing: { en: "Initializing", bn: "প্রস্তুত করা হচ্ছে" },
 };
 
 interface LangCtx {

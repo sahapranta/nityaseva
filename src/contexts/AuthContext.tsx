@@ -4,6 +4,7 @@ import { listen } from "@tauri-apps/api/event";
 import LoginScreen from "../pages/Login";
 import SetupWizard from "../components/StepWizard";
 import { TursoSetupScreen } from "../pages/TursoSetup";
+import { useLang } from "./LangContext";
 
 // Types
 export interface AuthUser {
@@ -38,7 +39,7 @@ const AuthContext = createContext<AuthCtx>({
     triggerSync: () => { },
 });
 
-type AppState = "checking" | "turso_setup" | "user_setup" | "login" | "ready";
+type AppState = "checking" | "turso_setup" | "user_setup" | "login" | "syncing" | "ready";
 
 export const useAuth = () => useContext(AuthContext);
 
@@ -47,6 +48,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const [appState, setAppState] = useState<AppState>("checking");
     const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null);
     const [syncing, setSyncing] = useState(false);
+    const { tr } = useLang();
 
     // Listen for sync events from Rust
     useEffect(() => {
@@ -85,6 +87,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setSyncStatus(status);
         } catch {
             setSyncing(false);
+        } finally {
+            setAppState("ready");
+            setSyncing(false);
         }
     };
 
@@ -102,8 +107,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const handleLogin = (u: AuthUser) => {
         setUser(u);
-        setAppState("ready");
-        // Fire and forget — sync in background after login
+        setAppState("syncing");
         syncAfterLogin();
     };
 
@@ -142,6 +146,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             <AuthContext.Provider value={{ user, login: handleLogin, logout: handleLogout, syncStatus, syncing, triggerSync }}>
                 <LoginScreen onLogin={(u) => { handleLogin(u); }} />
             </AuthContext.Provider>
+        );
+    }
+
+    if (appState === "syncing") {
+        return (
+            <div className="flex h-screen items-center justify-center bg-surface-0 text-sm text-text-muted">
+                <div className="text-center">
+                    <img src="/logo.png" alt="Nityaseva Logo" className="w-32 shadow-2xl rounded-full" />
+                    <p className="mt-6 text-sm">{tr('initializing')}…</p>
+                </div>
+            </div>
         );
     }
 
